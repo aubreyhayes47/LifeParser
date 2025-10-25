@@ -1,0 +1,42 @@
+{
+  "owner": {
+    "name": "Café Owner",
+    "location": "cafe",
+    "dialogues": {
+      "default": [
+        "You approach the café owner, a friendly middle-aged woman.",
+        "\"Welcome! Looking for a job or interested in buying the place?\"",
+        "She laughs. \"Just kidding about buying it... unless you have $50,000?\""
+      ]
+    }
+  },
+  "trainer": {
+    "name": "Gym Trainer",
+    "location": "gym",
+    "dialogues": {
+      "default": [
+        "The muscular trainer nods at you.",
+        "\"Want to build some muscle? A good workout session costs $20.\""
+      ]
+    }
+  },
+  "loan officer": {
+    "name": "Loan Officer",
+    "location": "bank",
+    "dialogues": {
+      "default": [
+        "The loan officer adjusts his glasses and smiles professionally.",
+        "\"We offer business loans from $5,000 to $50,000 at 8% interest. What do you need?\""
+      ]
+    }
+  },
+  "barista": {
+    "name": "Barista",
+    "location": "cafe",
+    "dialogues": {
+      "default": [
+        "You chat with the barista. They seem friendly."
+      ]
+    }
+  }
+}

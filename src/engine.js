@@ -3,9 +3,10 @@
  * Main game logic and command processing
  */
 
-import { gameState } from './gameState.js';
+import { gameState, initializeGameState } from './gameState.js';
 import { locations } from './locations.js';
 import { NLPParser } from './parser.js';
+import { dataLoader } from './dataLoader.js';
 
 export class GameEngine {
     constructor() {
@@ -15,18 +16,21 @@ export class GameEngine {
     }
 
     init() {
+        // Initialize game state with loaded config
+        initializeGameState();
         this.displayWelcome();
         this.updateUI();
     }
 
     displayWelcome() {
+        const config = dataLoader.getConfig();
         this.output('═══════════════════════════════════════════════════', 'system');
-        this.output('LIFE PARSER', 'location');
-        this.output('A Text-Based Life Simulation Game', 'system');
+        this.output(config.game.title, 'location');
+        this.output(config.game.subtitle, 'system');
         this.output('═══════════════════════════════════════════════════', 'system');
         this.output('');
         this.output(
-            'You wake up in your small apartment on Day 1. You have $500 to your name and dreams of building a business empire. Every decision matters. Every day counts.',
+            `You wake up in your small apartment on Day 1. You have $${config.initialCharacter.money} to your name and dreams of building a business empire. Every decision matters. Every day counts.`,
             'description'
         );
         this.output('');
@@ -166,34 +170,15 @@ export class GameEngine {
 
         gameState.lastNPC = target;
 
-        if (target.includes('owner') && gameState.currentLocation === 'cafe') {
-            this.output(
-                'You approach the café owner, a friendly middle-aged woman.',
-                'description'
-            );
-            this.output(
-                '"Welcome! Looking for a job or interested in buying the place?"',
-                'description'
-            );
-            this.output(
-                'She laughs. "Just kidding about buying it... unless you have $50,000?"',
-                'description'
-            );
-        } else if (target.includes('trainer')) {
-            this.output('The muscular trainer nods at you.', 'description');
-            this.output(
-                '"Want to build some muscle? A good workout session costs $20."',
-                'description'
-            );
-        } else if (target.includes('loan officer')) {
-            this.output(
-                'The loan officer adjusts his glasses and smiles professionally.',
-                'description'
-            );
-            this.output(
-                '"We offer business loans from $5,000 to $50,000 at 8% interest. What do you need?"',
-                'description'
-            );
+        // Get NPC dialogue from data
+        const npcs = dataLoader.getNPCs();
+        const npcKey = Object.keys(npcs).find(key => key.includes(target) || target.includes(key));
+
+        if (npcKey && npcs[npcKey] && npcs[npcKey].dialogues) {
+            const dialogue = npcs[npcKey].dialogues.default;
+            dialogue.forEach(line => {
+                this.output(line, 'description');
+            });
         } else {
             this.output(`You chat with the ${target}. They seem friendly.`, 'description');
         }
@@ -233,14 +218,18 @@ export class GameEngine {
 
     handleWork() {
         const loc = gameState.currentLocation;
+        const config = dataLoader.getConfig();
 
         if (loc === 'gym') {
-            if (gameState.character.money < 20) {
-                this.output("You don't have enough money for a gym session ($20).", 'error');
+            if (gameState.character.money < config.prices.gymSession) {
+                this.output(
+                    `You don't have enough money for a gym session ($${config.prices.gymSession}).`,
+                    'error'
+                );
                 return;
             }
 
-            this.modifyMoney(-20);
+            this.modifyMoney(-config.prices.gymSession);
             this.modifyEnergy(-30);
             this.modifyHunger(20);
             gameState.character.strength += 2;
@@ -250,14 +239,14 @@ export class GameEngine {
                 'You hit the weights hard. Your muscles burn, but you feel stronger!',
                 'success'
             );
-            this.output('Strength +2, Energy -30, $20 spent', 'system');
+            this.output(`Strength +2, Energy -30, $${config.prices.gymSession} spent`, 'system');
         } else if (loc === 'cafe') {
             if (!gameState.flags.hasJob) {
                 this.output("You need to apply for a job first. Try 'apply for job'.", 'error');
                 return;
             }
 
-            this.modifyMoney(60);
+            this.modifyMoney(config.prices.cafeWage);
             this.modifyEnergy(-25);
             this.modifyHunger(15);
             gameState.character.businessSkill += 1;
@@ -267,7 +256,7 @@ export class GameEngine {
                 'You work a 4-hour shift at the café, serving customers and managing the counter.',
                 'success'
             );
-            this.output('Earned $60, Business Skill +1', 'system');
+            this.output(`Earned $${config.prices.cafeWage}, Business Skill +1`, 'system');
         } else {
             this.output("There's nothing to work on here.", 'error');
         }
@@ -292,13 +281,17 @@ export class GameEngine {
      * @param {Object} _command - Command object (reserved for future food selection feature)
      */
     handleEat(_command) {
+        const config = dataLoader.getConfig();
         if (gameState.currentLocation === 'home') {
-            if (gameState.character.money < 10) {
-                this.output("You don't have enough money for food ($10).", 'error');
+            if (gameState.character.money < config.prices.homeMeal) {
+                this.output(
+                    `You don't have enough money for food ($${config.prices.homeMeal}).`,
+                    'error'
+                );
                 return;
             }
 
-            this.modifyMoney(-10);
+            this.modifyMoney(-config.prices.homeMeal);
             this.modifyHunger(-40);
             this.advanceTime(30);
 
@@ -306,19 +299,22 @@ export class GameEngine {
                 "You prepare a simple meal at home. It's not gourmet, but it fills you up.",
                 'success'
             );
-            this.output('Hunger -40, $10 spent', 'system');
+            this.output(`Hunger -40, $${config.prices.homeMeal} spent`, 'system');
         } else if (gameState.currentLocation === 'cafe') {
-            if (gameState.character.money < 15) {
-                this.output("You don't have enough money for café food ($15).", 'error');
+            if (gameState.character.money < config.prices.cafeMeal) {
+                this.output(
+                    `You don't have enough money for café food ($${config.prices.cafeMeal}).`,
+                    'error'
+                );
                 return;
             }
 
-            this.modifyMoney(-15);
+            this.modifyMoney(-config.prices.cafeMeal);
             this.modifyHunger(-50);
             this.advanceTime(20);
 
             this.output('You order a sandwich and coffee. Delicious!', 'success');
-            this.output('Hunger -50, $15 spent', 'system');
+            this.output(`Hunger -50, $${config.prices.cafeMeal} spent`, 'system');
         } else {
             this.output("You can't eat here. Try going home or to a café.", 'error');
         }
@@ -330,16 +326,23 @@ export class GameEngine {
             return;
         }
 
+        const config = dataLoader.getConfig();
         const amount = command.amount || 10000;
 
-        if (amount < 5000 || amount > 50000) {
-            this.output('Loans are available from $5,000 to $50,000.', 'error');
+        if (amount < config.loans.min || amount > config.loans.max) {
+            this.output(
+                `Loans are available from $${config.loans.min} to $${config.loans.max}.`,
+                'error'
+            );
             return;
         }
 
         this.modifyMoney(amount);
         this.output(`Loan approved! You receive $${amount}.`, 'success');
-        this.output('Remember: This comes with 8% interest. Invest wisely!', 'system');
+        this.output(
+            `Remember: This comes with ${config.loans.interestRate * 100}% interest. Invest wisely!`,
+            'system'
+        );
         this.advanceTime(30);
     }
 
@@ -354,10 +357,11 @@ export class GameEngine {
             return;
         }
 
+        const config = dataLoader.getConfig();
         gameState.flags.hasJob = true;
         this.output('The owner smiles and shakes your hand.', 'success');
         this.output(
-            '"Welcome aboard! You can work shifts by typing \'work\'. We pay $60 per 4-hour shift."',
+            `"Welcome aboard! You can work shifts by typing 'work'. We pay $${config.prices.cafeWage} per 4-hour shift."`,
             'description'
         );
         this.advanceTime(15);
@@ -365,20 +369,27 @@ export class GameEngine {
 
     handleBuy(command) {
         const target = command.target;
+        const config = dataLoader.getConfig();
 
         if (target && target.includes('cafe')) {
-            if (gameState.character.money < 50000) {
-                this.output('You need $50,000 to buy the café. Keep working and saving!', 'error');
+            if (gameState.character.money < config.prices.cafePrice) {
+                this.output(
+                    `You need $${config.prices.cafePrice} to buy the café. Keep working and saving!`,
+                    'error'
+                );
                 return;
             }
 
-            this.modifyMoney(-50000);
+            this.modifyMoney(-config.prices.cafePrice);
             gameState.flags.ownsCafe = true;
 
             this.output('═════════════════════════════════════', 'event');
             this.output('BUSINESS ACQUIRED!', 'success');
             this.output('You are now the proud owner of Coffee Bean Café!', 'description');
-            this.output('The café will generate passive income of $200/day.', 'description');
+            this.output(
+                `The café will generate passive income of $${config.prices.cafeRevenue}/day.`,
+                'description'
+            );
             this.output('═════════════════════════════════════', 'event');
         } else {
             this.output("You can't buy that right now.", 'error');
@@ -447,24 +458,34 @@ export class GameEngine {
     }
 
     checkRandomEvents() {
-        if (Math.random() < 0.05 && gameState.character.day > 2) {
+        const config = dataLoader.getConfig();
+        if (
+            Math.random() < config.game.randomEventChance &&
+            gameState.character.day > config.game.minDayForEvents
+        ) {
             this.triggerRandomEvent();
         }
     }
 
     triggerRandomEvent() {
-        const events = [
-            {
-                title: 'LUCKY FIND',
-                text: 'You find a $20 bill on the ground!',
-                effect: () => this.modifyMoney(20)
-            },
-            {
-                title: 'HELPFUL STRANGER',
-                text: 'A stranger gives you a productivity tip. You feel inspired!',
-                effect: () => (gameState.character.intelligence += 1)
+        const eventsData = dataLoader.getEvents();
+        const events = eventsData.events.map(event => ({
+            title: event.title,
+            text: event.text,
+            effect: () => {
+                if (event.effect.type === 'money') {
+                    this.modifyMoney(event.effect.value);
+                } else if (event.effect.type === 'intelligence') {
+                    gameState.character.intelligence += event.effect.value;
+                } else if (event.effect.type === 'strength') {
+                    gameState.character.strength += event.effect.value;
+                } else if (event.effect.type === 'charisma') {
+                    gameState.character.charisma += event.effect.value;
+                } else if (event.effect.type === 'businessSkill') {
+                    gameState.character.businessSkill += event.effect.value;
+                }
             }
-        ];
+        }));
 
         const event = events[Math.floor(Math.random() * events.length)];
         this.output('');
@@ -523,8 +544,12 @@ export class GameEngine {
             gameState.character.day += 1;
 
             if (gameState.flags.ownsCafe) {
-                this.modifyMoney(200);
-                this.output('Your café generated $200 in revenue today!', 'success');
+                const config = dataLoader.getConfig();
+                this.modifyMoney(config.prices.cafeRevenue);
+                this.output(
+                    `Your café generated $${config.prices.cafeRevenue} in revenue today!`,
+                    'success'
+                );
             }
         }
 

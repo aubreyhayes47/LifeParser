@@ -1,0 +1,17 @@
+{
+  "phone": {
+    "name": "Phone",
+    "description": "Your smartphone. Essential for modern life.",
+    "value": 200
+  },
+  "wallet": {
+    "name": "Wallet",
+    "description": "Your leather wallet containing your ID and cards.",
+    "value": 50
+  },
+  "keys": {
+    "name": "Keys",
+    "description": "Your apartment and car keys.",
+    "value": 10
+  }
+}

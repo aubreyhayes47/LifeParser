@@ -1,47 +1,38 @@
 /**
  * World Data - Locations and NPCs
  * Contains all location definitions and world structure
+ * Data is now loaded from external JSON files
  */
 
-export const locations = {
-    home: {
-        name: 'Your Apartment',
-        description:
-            "A small studio apartment. It's modest but clean. Your bed sits in the corner, and a small kitchenette lines one wall. Sunlight streams through a single window overlooking the street.",
-        exits: ['street'],
-        actions: ['sleep', 'eat', 'use laptop'],
-        npcs: []
-    },
-    street: {
-        name: 'Main Street',
-        description:
-            'The heart of downtown. Cars pass by occasionally. You can see the gym to the north, a small café to the east, the bank to the south, and your apartment building to the west.',
-        exits: ['gym', 'cafe', 'bank', 'home'],
-        actions: ['look around'],
-        npcs: []
-    },
-    gym: {
-        name: '24/7 Fitness Gym',
-        description:
-            'A well-equipped gym with free weights, machines, and cardio equipment. The smell of rubber and determination fills the air. Motivational posters line the walls.',
-        exits: ['street'],
-        actions: ['workout', 'talk to trainer'],
-        npcs: ['trainer']
-    },
-    cafe: {
-        name: 'Coffee Bean Café',
-        description:
-            'A cozy café with wooden tables and the rich aroma of fresh coffee. A few customers sit working on laptops. The barista is wiping down the counter.',
-        exits: ['street'],
-        actions: ['order coffee', 'talk to owner', 'apply for job'],
-        npcs: ['owner', 'barista']
-    },
-    bank: {
-        name: 'First National Bank',
-        description:
-            'A modern bank with polished floors and professional atmosphere. Tellers work behind glass windows. You see a loan officer at a desk in the corner.',
-        exits: ['street'],
-        actions: ['check balance', 'take loan', 'talk to loan officer'],
-        npcs: ['loan officer']
+import { dataLoader } from './dataLoader.js';
+
+/**
+ * Get locations data from the data loader
+ * @returns {Object} Locations object
+ */
+export function getLocations() {
+    return dataLoader.getLocations();
+}
+
+// For backward compatibility, export a getter
+export const locations = new Proxy(
+    {},
+    {
+        get(_target, prop) {
+            return dataLoader.getLocations()[prop];
+        },
+        ownKeys() {
+            return Object.keys(dataLoader.getLocations());
+        },
+        has(_target, prop) {
+            return prop in dataLoader.getLocations();
+        },
+        getOwnPropertyDescriptor(_target, prop) {
+            return {
+                enumerable: true,
+                configurable: true,
+                value: dataLoader.getLocations()[prop]
+            };
+        }
     }
-};
+);

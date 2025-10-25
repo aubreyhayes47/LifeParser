@@ -1,0 +1,22 @@
+{
+  "events": [
+    {
+      "id": "lucky_find",
+      "title": "LUCKY FIND",
+      "text": "You find a $20 bill on the ground!",
+      "effect": {
+        "type": "money",
+        "value": 20
+      }
+    },
+    {
+      "id": "helpful_stranger",
+      "title": "HELPFUL STRANGER",
+      "text": "A stranger gives you a productivity tip. You feel inspired!",
+      "effect": {
+        "type": "intelligence",
+        "value": 1
+      }
+    }
+  ]
+}
