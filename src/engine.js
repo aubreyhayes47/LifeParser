@@ -287,7 +287,7 @@ export class GameEngine {
         const config = dataLoader.getConfig();
 
         // Special case: Gym workout (not a job)
-        if (loc === 'gym' && !gameState.flags.hasJob && !gameState.careerPath) {
+        if (loc === 'gym' && !gameState.careerPath) {
             if (gameState.character.money < config.prices.gymSession) {
                 this.output(
                     `You don't have enough money for a gym session ($${config.prices.gymSession}).`,
@@ -311,7 +311,7 @@ export class GameEngine {
         }
 
         // Check if player has a job
-        if (!gameState.flags.hasJob || !gameState.careerPath) {
+        if (!gameState.careerPath) {
             this.output("You need to apply for a job first. Try 'apply for job' at various locations.", 'error');
             return;
         }
@@ -498,7 +498,7 @@ export class GameEngine {
             return;
         }
 
-        if (gameState.flags.hasJob && gameState.careerPath) {
+        if (gameState.careerPath) {
             this.output(`You already have a job as a ${gameState.careerPath.title}.`, 'error');
             this.output("You'll need to quit your current job before applying for a new one.", 'system');
             return;
