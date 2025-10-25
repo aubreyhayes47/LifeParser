@@ -172,9 +172,7 @@ export class GameEngine {
 
         // Get NPC dialogue from data
         const npcs = dataLoader.getNPCs();
-        const npcKey = Object.keys(npcs).find(
-            key => key.includes(target) || target.includes(key)
-        );
+        const npcKey = Object.keys(npcs).find(key => key.includes(target) || target.includes(key));
 
         if (npcKey && npcs[npcKey] && npcs[npcKey].dialogues) {
             const dialogue = npcs[npcKey].dialogues.default;
