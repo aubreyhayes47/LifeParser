@@ -23,7 +23,8 @@ export const gameState = {
         businessSkill: 30
     },
     currentLocation: 'home',
-    currentJob: null, // Track current career/job ID
+    currentJob: null, // LEGACY: Track current career/job ID (for backward compatibility)
+    careerPath: null, // NEW: Structured career progress { pathId, level, title, experience }
     businesses: [],
     relationships: {},
     inventory: ['phone', 'wallet', 'keys'],
@@ -49,8 +50,9 @@ export function initializeGameState() {
     // Update location
     gameState.currentLocation = config.initialLocation;
 
-    // Reset other properties
+    // Reset career properties
     gameState.currentJob = null;
+    gameState.careerPath = null;
     gameState.businesses = [];
     gameState.relationships = {};
     gameState.inventory = [...config.initialInventory];
@@ -81,6 +83,7 @@ function getDefaultGameState() {
         character: { ...config.initialCharacter },
         currentLocation: config.initialLocation,
         currentJob: null,
+        careerPath: null,
         businesses: [],
         relationships: {},
         inventory: [...config.initialInventory],
