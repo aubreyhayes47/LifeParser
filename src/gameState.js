@@ -23,6 +23,7 @@ export const gameState = {
         businessSkill: 30
     },
     currentLocation: 'home',
+    currentJob: null, // Track current career/job ID
     businesses: [],
     relationships: {},
     inventory: ['phone', 'wallet', 'keys'],
@@ -49,6 +50,7 @@ export function initializeGameState() {
     gameState.currentLocation = config.initialLocation;
 
     // Reset other properties
+    gameState.currentJob = null;
     gameState.businesses = [];
     gameState.relationships = {};
     gameState.inventory = [...config.initialInventory];
@@ -78,6 +80,7 @@ function getDefaultGameState() {
     return {
         character: { ...config.initialCharacter },
         currentLocation: config.initialLocation,
+        currentJob: null,
         businesses: [],
         relationships: {},
         inventory: [...config.initialInventory],
