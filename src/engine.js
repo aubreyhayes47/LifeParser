@@ -30,11 +30,11 @@ export class GameEngine {
             'description'
         );
         this.output('');
-        this.output("Type 'help' for a list of commands, or try natural language like:", 'system');
-        this.output("  • 'look around' - Examine your surroundings", 'system');
-        this.output("  • 'go to cafe' - Travel to locations", 'system');
-        this.output("  • 'check stats' - View your character", 'system');
-        this.output("  • 'talk to [person]' - Interact with NPCs", 'system');
+        this.output('Type \'help\' for a list of commands, or try natural language like:', 'system');
+        this.output('  • \'look around\' - Examine your surroundings', 'system');
+        this.output('  • \'go to cafe\' - Travel to locations', 'system');
+        this.output('  • \'check stats\' - View your character', 'system');
+        this.output('  • \'talk to [person]\' - Interact with NPCs', 'system');
         this.output('');
         this.describeLocation();
     }
@@ -49,57 +49,57 @@ export class GameEngine {
         const command = this.parser.parse(input);
 
         switch (command.action) {
-            case 'move':
-                this.handleMovement(command);
-                break;
-            case 'look':
-                this.describeLocation();
-                break;
-            case 'talk':
-                this.handleConversation(command);
-                break;
-            case 'examine':
-                this.handleExamine(command);
-                break;
-            case 'work':
-                this.handleWork();
-                break;
-            case 'sleep':
-                this.handleSleep(command.duration);
-                break;
-            case 'eat':
-                this.handleEat(command);
-                break;
-            case 'loan':
-                this.handleLoan(command);
-                break;
-            case 'apply':
-                this.handleApply();
-                break;
-            case 'buy':
-                this.handleBuy(command);
-                break;
-            case 'help':
-                this.showHelp();
-                break;
-            case 'inventory':
-                this.showInventory();
-                break;
-            case 'stats':
-                this.showStats();
-                break;
-            case 'save':
-                this.saveGame();
-                break;
-            case 'load':
-                this.loadGame();
-                break;
-            case 'unknown':
-                this.output(
-                    `I don't understand "${input}". Try 'help' for available commands.`,
-                    'error'
-                );
-                break;
+        case 'move':
+            this.handleMovement(command);
+            break;
+        case 'look':
+            this.describeLocation();
+            break;
+        case 'talk':
+            this.handleConversation(command);
+            break;
+        case 'examine':
+            this.handleExamine(command);
+            break;
+        case 'work':
+            this.handleWork();
+            break;
+        case 'sleep':
+            this.handleSleep(command.duration);
+            break;
+        case 'eat':
+            this.handleEat(command);
+            break;
+        case 'loan':
+            this.handleLoan(command);
+            break;
+        case 'apply':
+            this.handleApply();
+            break;
+        case 'buy':
+            this.handleBuy(command);
+            break;
+        case 'help':
+            this.showHelp();
+            break;
+        case 'inventory':
+            this.showInventory();
+            break;
+        case 'stats':
+            this.showStats();
+            break;
+        case 'save':
+            this.saveGame();
+            break;
+        case 'load':
+            this.loadGame();
+            break;
+        case 'unknown':
+            this.output(
+                `I don't understand "${input}". Try 'help' for available commands.`,
+                'error'
+            );
+            break;
         }
 
         this.updateUI();
@@ -116,7 +116,7 @@ export class GameEngine {
         const currentLoc = locations[gameState.currentLocation];
 
         if (!targetLocation || !locations[targetLocation]) {
-            this.output("You can't go there from here.", 'error');
+            this.output('You can\'t go there from here.', 'error');
             this.output(`Available exits: ${currentLoc.exits.join(', ')}`, 'system');
             return;
         }
@@ -160,7 +160,7 @@ export class GameEngine {
         }
 
         if (!loc.npcs.some(npc => npc.includes(target) || target.includes(npc))) {
-            this.output("There's no one like that here.", 'error');
+            this.output('There\'s no one like that here.', 'error');
             return;
         }
 
@@ -224,7 +224,7 @@ export class GameEngine {
                 this.output('You own the Coffee Bean Café!', 'success');
                 this.output('Revenue: $200/day (currently passive)', 'description');
             } else {
-                this.output("You don't own any businesses yet.", 'description');
+                this.output('You don\'t own any businesses yet.', 'description');
             }
         } else {
             this.output(`You examine the ${target}. Nothing special.`, 'description');
@@ -236,7 +236,7 @@ export class GameEngine {
 
         if (loc === 'gym') {
             if (gameState.character.money < 20) {
-                this.output("You don't have enough money for a gym session ($20).", 'error');
+                this.output('You don\'t have enough money for a gym session ($20).', 'error');
                 return;
             }
 
@@ -253,7 +253,7 @@ export class GameEngine {
             this.output('Strength +2, Energy -30, $20 spent', 'system');
         } else if (loc === 'cafe') {
             if (!gameState.flags.hasJob) {
-                this.output("You need to apply for a job first. Try 'apply for job'.", 'error');
+                this.output('You need to apply for a job first. Try \'apply for job\'.', 'error');
                 return;
             }
 
@@ -269,7 +269,7 @@ export class GameEngine {
             );
             this.output('Earned $60, Business Skill +1', 'system');
         } else {
-            this.output("There's nothing to work on here.", 'error');
+            this.output('There\'s nothing to work on here.', 'error');
         }
     }
 
@@ -287,10 +287,10 @@ export class GameEngine {
         this.output('Energy restored to 100', 'system');
     }
 
-    handleEat(command) {
+    handleEat(_command) {
         if (gameState.currentLocation === 'home') {
             if (gameState.character.money < 10) {
-                this.output("You don't have enough money for food ($10).", 'error');
+                this.output('You don\'t have enough money for food ($10).', 'error');
                 return;
             }
 
@@ -299,13 +299,13 @@ export class GameEngine {
             this.advanceTime(30);
 
             this.output(
-                "You prepare a simple meal at home. It's not gourmet, but it fills you up.",
+                'You prepare a simple meal at home. It\'s not gourmet, but it fills you up.',
                 'success'
             );
             this.output('Hunger -40, $10 spent', 'system');
         } else if (gameState.currentLocation === 'cafe') {
             if (gameState.character.money < 15) {
-                this.output("You don't have enough money for café food ($15).", 'error');
+                this.output('You don\'t have enough money for café food ($15).', 'error');
                 return;
             }
 
@@ -316,7 +316,7 @@ export class GameEngine {
             this.output('You order a sandwich and coffee. Delicious!', 'success');
             this.output('Hunger -50, $15 spent', 'system');
         } else {
-            this.output("You can't eat here. Try going home or to a café.", 'error');
+            this.output('You can\'t eat here. Try going home or to a café.', 'error');
         }
     }
 
@@ -377,7 +377,7 @@ export class GameEngine {
             this.output('The café will generate passive income of $200/day.', 'description');
             this.output('═════════════════════════════════════', 'event');
         } else {
-            this.output("You can't buy that right now.", 'error');
+            this.output('You can\'t buy that right now.', 'error');
         }
     }
 
