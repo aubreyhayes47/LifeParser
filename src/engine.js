@@ -3,7 +3,14 @@
  * Main game logic and command processing
  */
 
-import { gameState, initializeGameState, saveGameState, loadGameState, hasSavedGame, getSaveTimestamp } from './gameState.js';
+import {
+    gameState,
+    initializeGameState,
+    saveGameState,
+    loadGameState,
+    hasSavedGame,
+    getSaveTimestamp
+} from './gameState.js';
 import { locations } from './locations.js';
 import { NLPParser } from './parser.js';
 import { dataLoader } from './dataLoader.js';
@@ -125,7 +132,7 @@ export class GameEngine {
 
         this.updateUI();
         this.checkRandomEvents();
-        
+
         // Auto-save after each command
         this.autoSave();
     }
@@ -526,7 +533,10 @@ export class GameEngine {
             this.output('═══════════════════════════════════════════════════', 'system');
             this.output('GAME SAVED', 'success');
             this.output(`Saved at: ${timestamp}`, 'system');
-            this.output('Your progress has been automatically saved to your browser.', 'description');
+            this.output(
+                'Your progress has been automatically saved to your browser.',
+                'description'
+            );
             this.output('═══════════════════════════════════════════════════', 'system');
         } else {
             this.output('Failed to save game. Please try again.', 'error');

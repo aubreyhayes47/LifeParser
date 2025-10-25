@@ -144,7 +144,11 @@ function mergeGameState(target, defaultState, loadedState) {
     Object.keys(defaultState).forEach(key => {
         if (Object.prototype.hasOwnProperty.call(loadedState, key)) {
             // Property exists in loaded state
-            if (typeof defaultState[key] === 'object' && defaultState[key] !== null && !Array.isArray(defaultState[key])) {
+            if (
+                typeof defaultState[key] === 'object' &&
+                defaultState[key] !== null &&
+                !Array.isArray(defaultState[key])
+            ) {
                 // Deep merge objects
                 target[key] = { ...defaultState[key], ...loadedState[key] };
             } else {
@@ -153,7 +157,9 @@ function mergeGameState(target, defaultState, loadedState) {
             }
         } else {
             // Property doesn't exist in loaded state, use default
-            target[key] = Array.isArray(defaultState[key]) ? [...defaultState[key]] : defaultState[key];
+            target[key] = Array.isArray(defaultState[key])
+                ? [...defaultState[key]]
+                : defaultState[key];
         }
     });
 }
