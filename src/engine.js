@@ -54,6 +54,9 @@ export class GameEngine {
         if (hasSavedGame()) {
             const success = loadGameState();
             if (success) {
+                // Migrate legacy job data if needed
+                this.migrateLegacyJob();
+                
                 const timestamp = getSaveTimestamp();
                 const date = timestamp ? new Date(timestamp).toLocaleString() : 'unknown time';
                 this.output('═══════════════════════════════════════════════════', 'system');
@@ -130,6 +133,12 @@ export class GameEngine {
                 break;
             case 'apply':
                 this.handleApply();
+                break;
+            case 'promote':
+                this.handlePromote();
+                break;
+            case 'careerinfo':
+                this.showCareerInfo();
                 break;
             case 'buy':
                 this.handleBuy(command);
@@ -276,10 +285,9 @@ export class GameEngine {
     handleWork() {
         const loc = gameState.currentLocation;
         const config = dataLoader.getConfig();
-        const careers = dataLoader.getCareers();
 
         // Special case: Gym workout (not a job)
-        if (loc === 'gym' && !gameState.flags.hasJob) {
+        if (loc === 'gym' && !gameState.flags.hasJob && !gameState.careerPath) {
             if (gameState.character.money < config.prices.gymSession) {
                 this.output(
                     `You don't have enough money for a gym session ($${config.prices.gymSession}).`,
@@ -303,34 +311,34 @@ export class GameEngine {
         }
 
         // Check if player has a job
-        if (!gameState.flags.hasJob || !gameState.currentJob) {
+        if (!gameState.flags.hasJob || !gameState.careerPath) {
             this.output("You need to apply for a job first. Try 'apply for job' at various locations.", 'error');
             return;
         }
 
-        // Get current career data
-        const career = careers[gameState.currentJob];
-        if (!career) {
+        // Get current career level data
+        const currentLevel = this.getCurrentCareerLevel();
+        if (!currentLevel) {
             this.output("Error: Your job data is missing. Please apply for a job again.", 'error');
             gameState.flags.hasJob = false;
-            gameState.currentJob = null;
+            gameState.careerPath = null;
             return;
         }
 
         // Check if player is at the right location for their job
-        if (loc !== career.location) {
+        if (loc !== currentLevel.location) {
             this.output(
-                `You need to go to ${career.location} to work as a ${career.name}.`,
+                `You need to go to ${currentLevel.location} to work as a ${gameState.careerPath.title}.`,
                 'error'
             );
             return;
         }
 
         // Check if player has enough energy
-        const energyRequired = Math.floor(career.hoursPerShift * ENERGY_PER_HOUR);
+        const energyRequired = Math.floor(currentLevel.hoursPerShift * ENERGY_PER_HOUR);
         if (gameState.character.energy < energyRequired) {
             this.output(
-                `You're too tired to work. You need at least ${energyRequired} energy for a ${career.hoursPerShift}-hour shift.`,
+                `You're too tired to work. You need at least ${energyRequired} energy for a ${currentLevel.hoursPerShift}-hour shift.`,
                 'error'
             );
             this.output("Try sleeping to restore your energy.", 'system');
@@ -338,18 +346,18 @@ export class GameEngine {
         }
 
         // Calculate earnings (wage is per shift)
-        const earnings = career.wage;
+        const earnings = currentLevel.wage;
 
         // Apply work effects
         this.modifyMoney(earnings);
         this.modifyEnergy(-energyRequired);
-        this.modifyHunger(Math.floor(career.hoursPerShift * HUNGER_PER_HOUR));
-        this.advanceTime(career.hoursPerShift * 60);
+        this.modifyHunger(Math.floor(currentLevel.hoursPerShift * HUNGER_PER_HOUR));
+        this.advanceTime(currentLevel.hoursPerShift * 60);
 
-        // Apply skill gains
+        // Apply skill gains and track experience
         const skillMessages = [];
-        if (career.skillGains) {
-            Object.entries(career.skillGains).forEach(([skill, gain]) => {
+        if (currentLevel.skillGains) {
+            Object.entries(currentLevel.skillGains).forEach(([skill, gain]) => {
                 if (gameState.character[skill] !== undefined) {
                     gameState.character[skill] += gain;
                     gameState.character[skill] = Math.min(100, gameState.character[skill]);
@@ -360,15 +368,40 @@ export class GameEngine {
             });
         }
 
+        // Add experience points (10 per shift)
+        const experienceGained = 10;
+        gameState.careerPath.experience += experienceGained;
+
         // Output success message
         this.output(
-            `You complete a ${career.hoursPerShift}-hour shift as a ${career.name}.`,
+            `You complete a ${currentLevel.hoursPerShift}-hour shift as a ${gameState.careerPath.title}.`,
             'success'
         );
         this.output(`Earned $${earnings}`, 'system');
 
         if (skillMessages.length > 0) {
             this.output(skillMessages.join(', '), 'system');
+        }
+
+        this.output(`Experience +${experienceGained} (Total: ${gameState.careerPath.experience})`, 'system');
+
+        // Check if ready for promotion
+        if (currentLevel.experienceForNext && gameState.careerPath.experience >= currentLevel.experienceForNext) {
+            const promotionCheck = this.canPromote();
+            if (promotionCheck.canPromote) {
+                this.output('', 'system');
+                this.output('═════════════════════════════════════', 'event');
+                this.output('PROMOTION AVAILABLE!', 'success');
+                this.output(`You're ready to advance to the next level!`, 'description');
+                this.output("Type 'promote' to request your promotion.", 'system');
+                this.output('═════════════════════════════════════', 'event');
+            } else if (promotionCheck.missing.length > 0) {
+                this.output('', 'system');
+                this.output('You have enough experience for promotion, but need to improve:', 'system');
+                promotionCheck.missing.forEach(req => {
+                    this.output(`  • ${req}`, 'system');
+                });
+            }
         }
     }
 
@@ -457,21 +490,16 @@ export class GameEngine {
     }
 
     handleApply() {
-        const loc = gameState.currentLocation;
-        const careers = dataLoader.getCareers();
-
-        // Find careers available at current location
-        const availableCareers = Object.entries(careers).filter(
-            ([_id, career]) => career.location === loc
-        );
+        // Find career paths available at current location
+        const availableCareers = this.getAvailableCareersAtLocation();
 
         if (availableCareers.length === 0) {
             this.output('There are no job openings here.', 'error');
             return;
         }
 
-        if (gameState.flags.hasJob) {
-            this.output(`You already have a job as a ${careers[gameState.currentJob].name}.`, 'error');
+        if (gameState.flags.hasJob && gameState.careerPath) {
+            this.output(`You already have a job as a ${gameState.careerPath.title}.`, 'error');
             this.output("You'll need to quit your current job before applying for a new one.", 'system');
             return;
         }
@@ -480,26 +508,32 @@ export class GameEngine {
         let qualifiedCareer = null;
         const failedRequirements = {};
 
-        for (const [careerId, career] of availableCareers) {
-            const requirementCheck = this.checkRequirements(career.requirements || {});
+        for (const [pathId, path, entryLevel] of availableCareers) {
+            const requirementCheck = this.checkRequirements(entryLevel.requirements || {});
             if (requirementCheck.met) {
-                qualifiedCareer = [careerId, career];
+                qualifiedCareer = [pathId, path, entryLevel];
                 break;
             } else {
-                failedRequirements[careerId] = requirementCheck.missing;
+                failedRequirements[pathId] = requirementCheck.missing;
             }
         }
 
         if (qualifiedCareer) {
-            const [careerId, career] = qualifiedCareer;
+            const [pathId, path, entryLevel] = qualifiedCareer;
             gameState.flags.hasJob = true;
-            gameState.currentJob = careerId;
+            gameState.careerPath = {
+                pathId: pathId,
+                level: entryLevel.level,
+                title: entryLevel.title,
+                experience: 0
+            };
 
             this.output('The hiring manager smiles and shakes your hand.', 'success');
             this.output(
-                `"Welcome aboard as our new ${career.name}! You can work shifts by typing 'work'. We pay $${career.wage} per ${career.hoursPerShift}-hour shift."`,
+                `"Welcome aboard as our new ${entryLevel.title}! You can work shifts by typing 'work'. We pay $${entryLevel.wage} per ${entryLevel.hoursPerShift}-hour shift."`,
                 'description'
             );
+            this.output(`You've started on the ${path.name} career track!`, 'system');
             this.advanceTime(15);
         } else {
             // Show why player didn't qualify
@@ -507,13 +541,13 @@ export class GameEngine {
             this.output('', 'system');
             this.output('AVAILABLE POSITIONS:', 'description');
 
-            for (const [careerId, career] of availableCareers) {
-                this.output(`\n${career.name} - $${career.wage}/shift`, 'system');
-                this.output(`  ${career.description}`, 'description');
+            for (const [pathId, path, entryLevel] of availableCareers) {
+                this.output(`\n${entryLevel.title} (${path.name}) - $${entryLevel.wage}/shift`, 'system');
+                this.output(`  ${entryLevel.description}`, 'description');
 
-                if (failedRequirements[careerId] && failedRequirements[careerId].length > 0) {
+                if (failedRequirements[pathId] && failedRequirements[pathId].length > 0) {
                     this.output('  Missing requirements:', 'error');
-                    failedRequirements[careerId].forEach(req => {
+                    failedRequirements[pathId].forEach(req => {
                         this.output(`    • ${req}`, 'error');
                     });
                 }
@@ -550,6 +584,120 @@ export class GameEngine {
         }
     }
 
+    handlePromote() {
+        if (!gameState.careerPath) {
+            this.output("You don't have a job to get promoted in.", 'error');
+            this.output("Try 'apply for job' at various locations first.", 'system');
+            return;
+        }
+
+        const promotionCheck = this.canPromote();
+        
+        if (!promotionCheck.canPromote) {
+            this.output("You're not ready for promotion yet.", 'error');
+            this.output('', 'system');
+            
+            if (promotionCheck.missing.includes('Already at max level')) {
+                this.output("You're already at the highest level in your career path!", 'system');
+                this.output("Consider exploring other opportunities or starting a business.", 'system');
+            } else {
+                this.output('Requirements for promotion:', 'system');
+                promotionCheck.missing.forEach(req => {
+                    this.output(`  • ${req}`, 'error');
+                });
+            }
+            return;
+        }
+
+        // Promote the player
+        const oldTitle = gameState.careerPath.title;
+        const promoted = this.promotePlayer();
+        
+        if (promoted) {
+            const newLevel = this.getCurrentCareerLevel();
+            
+            this.output('═════════════════════════════════════', 'event');
+            this.output('PROMOTION!', 'success');
+            this.output(`Congratulations! You've been promoted from ${oldTitle} to ${newLevel.title}!`, 'description');
+            this.output(`New wage: $${newLevel.wage} per ${newLevel.hoursPerShift}-hour shift`, 'system');
+            this.output('═════════════════════════════════════', 'event');
+            this.advanceTime(30);
+        } else {
+            this.output("Promotion failed. This shouldn't happen - please try again.", 'error');
+        }
+    }
+
+    showCareerInfo() {
+        if (!gameState.careerPath) {
+            this.output("You don't currently have a career.", 'error');
+            this.output("Type 'jobs' to see available careers, or 'apply for job' at various locations.", 'system');
+            return;
+        }
+
+        const path = this.getCareerPath(gameState.careerPath.pathId);
+        const currentLevel = this.getCurrentCareerLevel();
+        const nextLevel = this.getNextCareerLevel();
+
+        this.output('═══════════════════════════════════════════════════', 'system');
+        this.output('YOUR CAREER PATH', 'location');
+        this.output('═══════════════════════════════════════════════════', 'system');
+        this.output(`Path: ${path.name}`, 'description');
+        this.output(`Current Position: ${gameState.careerPath.title} (Level ${gameState.careerPath.level})`, 'description');
+        this.output(`Location: ${currentLevel.location}`, 'system');
+        this.output(`Wage: $${currentLevel.wage} per ${currentLevel.hoursPerShift}h shift`, 'system');
+        this.output('', 'system');
+        
+        // Show experience progress
+        if (currentLevel.experienceForNext) {
+            const progress = Math.floor((gameState.careerPath.experience / currentLevel.experienceForNext) * 100);
+            this.output(`Experience: ${gameState.careerPath.experience}/${currentLevel.experienceForNext} (${progress}%)`, 'system');
+        } else {
+            this.output(`Experience: ${gameState.careerPath.experience} (Max level reached)`, 'system');
+        }
+
+        // Show next level if available
+        if (nextLevel) {
+            this.output('', 'system');
+            this.output('NEXT LEVEL:', 'description');
+            this.output(`${nextLevel.title} (Level ${nextLevel.level})`, 'system');
+            this.output(`Wage: $${nextLevel.wage} per ${nextLevel.hoursPerShift}h shift`, 'system');
+            
+            if (nextLevel.requirements) {
+                this.output('Requirements:', 'system');
+                Object.entries(nextLevel.requirements).forEach(([skill, minValue]) => {
+                    const currentValue = gameState.character[skill] || 0;
+                    const met = currentValue >= minValue;
+                    this.output(
+                        `  • ${this.formatSkillName(skill)}: ${currentValue}/${minValue}${met ? ' ✓' : ''}`,
+                        met ? 'success' : 'error'
+                    );
+                });
+            }
+
+            const promotionCheck = this.canPromote();
+            if (promotionCheck.canPromote) {
+                this.output('', 'system');
+                this.output("✓ You're ready for promotion! Type 'promote' to advance.", 'success');
+            } else if (gameState.careerPath.experience >= currentLevel.experienceForNext) {
+                this.output('', 'system');
+                this.output('You have enough experience but need to meet the skill requirements.', 'system');
+            }
+        } else {
+            this.output('', 'system');
+            this.output("You're at the maximum level for this career path!", 'success');
+        }
+
+        // Show career path progression
+        this.output('', 'system');
+        this.output('CAREER PROGRESSION:', 'description');
+        path.levels.forEach(level => {
+            const isCurrent = level.level === gameState.careerPath.level;
+            const marker = isCurrent ? '→ ' : '  ';
+            const style = isCurrent ? 'success' : 'system';
+            this.output(`${marker}Level ${level.level}: ${level.title} ($${level.wage}/shift)`, style);
+        });
+    }
+
     showHelp() {
         this.output('═══════════════════════════════════════════════════', 'system');
         this.output('AVAILABLE COMMANDS', 'location');
@@ -562,6 +710,7 @@ export class GameEngine {
         this.output('  • talk to [person] - Speak with NPCs', 'system');
         this.output('  • work - Do activities at current location', 'system');
         this.output('  • apply for job - Get hired (check requirements first)', 'system');
+        this.output('  • promote - Request promotion to next level', 'system');
         this.output('');
         this.output('BASIC NEEDS:', 'description');
         this.output('  • sleep - Rest at home (restores energy)', 'system');
@@ -574,6 +723,7 @@ export class GameEngine {
         this.output('INFO:', 'description');
         this.output('  • stats - View full character stats', 'system');
         this.output('  • jobs - View all available careers and requirements', 'system');
+        this.output('  • career - View detailed career path information', 'system');
         this.output('  • check [thing] - Examine something', 'system');
         this.output('  • inventory - View items', 'system');
         this.output('  • save - Save game to browser storage', 'system');
@@ -584,7 +734,6 @@ export class GameEngine {
 
     showStats() {
         const c = gameState.character;
-        const careers = dataLoader.getCareers();
         this.output('═══════════════════════════════════════════════════', 'system');
         this.output('CHARACTER STATS', 'location');
         this.output('═══════════════════════════════════════════════════', 'system');
@@ -602,15 +751,20 @@ export class GameEngine {
         this.output(`  Business:      ${c.businessSkill}/100`, 'system');
         this.output('');
         this.output('CAREER:', 'description');
-        if (gameState.currentJob && careers[gameState.currentJob]) {
-            const career = careers[gameState.currentJob];
+        if (gameState.careerPath) {
+            const currentLevel = this.getCurrentCareerLevel();
+            const path = this.getCareerPath(gameState.careerPath.pathId);
             this.output(
-                `  Current Job:  ${career.name} at ${career.location}`,
+                `  Current Job:  ${gameState.careerPath.title} (Level ${gameState.careerPath.level})`,
                 'system'
             );
-            this.output(`  Wage:         $${career.wage} per ${career.hoursPerShift}h shift`, 'system');
+            this.output(`  Career Path:  ${path.name}`, 'system');
+            this.output(`  Location:     ${currentLevel.location}`, 'system');
+            this.output(`  Wage:         $${currentLevel.wage} per ${currentLevel.hoursPerShift}h shift`, 'system');
+            this.output(`  Experience:   ${gameState.careerPath.experience}${currentLevel.experienceForNext ? `/${currentLevel.experienceForNext}` : ' (Max level)'}`, 'system');
         } else {
             this.output('  Current Job:  Unemployed', 'system');
+            this.output("  Type 'jobs' to see available careers", 'system');
         }
         this.output('');
         this.output('FINANCIAL:', 'description');
@@ -637,26 +791,25 @@ export class GameEngine {
         this.output('═══════════════════════════════════════════════════', 'system');
         this.output('');
 
-        // Find careers at current location
-        const localCareers = Object.entries(careers).filter(
-            ([_id, career]) => career.location === loc
-        );
+        // Find career paths at current location
+        const localCareers = this.getAvailableCareersAtLocation();
 
         if (localCareers.length > 0) {
             this.output('AT YOUR CURRENT LOCATION:', 'description');
-            localCareers.forEach(([_careerId, career]) => {
-                const requirementCheck = this.checkRequirements(career.requirements || {});
+            localCareers.forEach(([_pathId, path, entryLevel]) => {
+                const requirementCheck = this.checkRequirements(entryLevel.requirements || {});
                 const qualifies = requirementCheck.met ? '✓' : '✗';
 
                 this.output(
-                    `\n${qualifies} ${career.name} - $${career.wage} per ${career.hoursPerShift}h shift`,
+                    `\n${qualifies} ${entryLevel.title} (${path.name}) - $${entryLevel.wage} per ${entryLevel.hoursPerShift}h shift`,
                     requirementCheck.met ? 'success' : 'system'
                 );
-                this.output(`  ${career.description}`, 'description');
+                this.output(`  ${entryLevel.description}`, 'description');
+                this.output(`  Career Path: ${path.levels.length} levels`, 'system');
 
-                if (career.requirements) {
+                if (entryLevel.requirements) {
                     const reqList = [];
-                    Object.entries(career.requirements).forEach(([skill, minValue]) => {
+                    Object.entries(entryLevel.requirements).forEach(([skill, minValue]) => {
                         const currentValue = gameState.character[skill] || 0;
                         const met = currentValue >= minValue;
                         reqList.push(
@@ -666,36 +819,44 @@ export class GameEngine {
                     this.output(`  Requirements: ${reqList.join(', ')}`, 'system');
                 }
 
-                if (career.skillGains) {
-                    const gains = Object.entries(career.skillGains)
+                if (entryLevel.skillGains) {
+                    const gains = Object.entries(entryLevel.skillGains)
                         .map(([skill, gain]) => `${this.formatSkillName(skill)} +${gain}`)
                         .join(', ');
                     this.output(`  Skill Gains: ${gains}`, 'system');
+                }
+
+                // Show path progression
+                const pathNames = path.levels.map(l => l.title).join(' → ');
+                this.output(`  Progression: ${pathNames}`, 'system');
+            });
+            this.output('');
+        }
+
+        // Show all other career paths
+        const otherCareers = Object.entries(careers).filter(
+            ([_id, path]) => path.entryLocation && path.entryLocation !== loc
+        );
+
+        if (otherCareers.length > 0) {
+            this.output('OTHER CAREER PATHS:', 'description');
+            otherCareers.forEach(([_pathId, path]) => {
+                if (path.levels && path.levels.length > 0) {
+                    const entryLevel = path.levels[0];
+                    const requirementCheck = this.checkRequirements(entryLevel.requirements || {});
+                    const qualifies = requirementCheck.met ? '✓' : '✗';
+
+                    this.output(
+                        `${qualifies} ${path.name} at ${path.entryLocation} - Starting wage: $${entryLevel.wage}/shift`,
+                        'system'
+                    );
                 }
             });
             this.output('');
         }
 
-        // Show all other careers
-        const otherCareers = Object.entries(careers).filter(
-            ([_id, career]) => career.location !== loc
-        );
-
-        if (otherCareers.length > 0) {
-            this.output('OTHER CAREERS:', 'description');
-            otherCareers.forEach(([_careerId, career]) => {
-                const requirementCheck = this.checkRequirements(career.requirements || {});
-                const qualifies = requirementCheck.met ? '✓' : '✗';
-
-                this.output(
-                    `${qualifies} ${career.name} at ${career.location} - $${career.wage}/shift`,
-                    'system'
-                );
-            });
-            this.output('');
-        }
-
         this.output("Type 'apply for job' at a location to apply for available positions.", 'system');
+        this.output("Type 'career' to view detailed information about your current career path.", 'system');
     }
 
     checkRandomEvents() {
@@ -931,5 +1092,152 @@ export class GameEngine {
         hungerEl.className = 'stat-value';
         if (c.hunger > 70) hungerEl.classList.add('error');
         else if (c.hunger > 50) hungerEl.classList.add('warning');
+    }
+
+    // CAREER SYSTEM HELPER METHODS
+
+    /**
+     * Get current career level data
+     * @returns {Object|null} Current level data or null if no job
+     */
+    getCurrentCareerLevel() {
+        if (!gameState.careerPath) return null;
+        
+        const careers = dataLoader.getCareers();
+        const path = careers[gameState.careerPath.pathId];
+        if (!path || !path.levels) return null;
+        
+        return path.levels.find(level => level.level === gameState.careerPath.level);
+    }
+
+    /**
+     * Get career path data
+     * @param {string} pathId - Career path ID
+     * @returns {Object|null} Career path data or null
+     */
+    getCareerPath(pathId) {
+        const careers = dataLoader.getCareers();
+        return careers[pathId] || null;
+    }
+
+    /**
+     * Get next career level in current path
+     * @returns {Object|null} Next level data or null if at max level
+     */
+    getNextCareerLevel() {
+        if (!gameState.careerPath) return null;
+        
+        const path = this.getCareerPath(gameState.careerPath.pathId);
+        if (!path || !path.levels) return null;
+        
+        const nextLevel = gameState.careerPath.level + 1;
+        return path.levels.find(level => level.level === nextLevel) || null;
+    }
+
+    /**
+     * Check if player can be promoted to next level
+     * @returns {Object} { canPromote: boolean, missing: Array<string> }
+     */
+    canPromote() {
+        const nextLevel = this.getNextCareerLevel();
+        if (!nextLevel) {
+            return { canPromote: false, missing: ['Already at max level'] };
+        }
+
+        const currentLevel = this.getCurrentCareerLevel();
+        if (!currentLevel) {
+            return { canPromote: false, missing: ['No current job'] };
+        }
+
+        // Check if enough experience
+        if (currentLevel.experienceForNext && gameState.careerPath.experience < currentLevel.experienceForNext) {
+            return { 
+                canPromote: false, 
+                missing: [`Need ${currentLevel.experienceForNext - gameState.careerPath.experience} more experience`]
+            };
+        }
+
+        // Check requirements for next level
+        const requirementCheck = this.checkRequirements(nextLevel.requirements || {});
+        return {
+            canPromote: requirementCheck.met,
+            missing: requirementCheck.missing
+        };
+    }
+
+    /**
+     * Promote player to next level in career path
+     * @returns {boolean} True if promoted successfully
+     */
+    promotePlayer() {
+        const promotionCheck = this.canPromote();
+        if (!promotionCheck.canPromote) {
+            return false;
+        }
+
+        const nextLevel = this.getNextCareerLevel();
+        gameState.careerPath.level = nextLevel.level;
+        gameState.careerPath.title = nextLevel.title;
+        gameState.careerPath.experience = 0; // Reset experience for new level
+
+        return true;
+    }
+
+    /**
+     * Get available career paths at current location
+     * @returns {Array} Array of [pathId, path, level] for entry-level positions
+     */
+    getAvailableCareersAtLocation() {
+        const loc = gameState.currentLocation;
+        const careers = dataLoader.getCareers();
+        const available = [];
+
+        Object.entries(careers).forEach(([pathId, path]) => {
+            if (path.entryLocation === loc && path.levels && path.levels.length > 0) {
+                available.push([pathId, path, path.levels[0]]);
+            }
+        });
+
+        return available;
+    }
+
+    /**
+     * Migrate legacy currentJob to new careerPath structure
+     */
+    migrateLegacyJob() {
+        // If we have a currentJob but no careerPath, migrate it
+        if (gameState.currentJob && !gameState.careerPath) {
+            const careers = dataLoader.getCareers();
+            
+            // Map legacy job IDs to new career paths
+            const legacyMapping = {
+                'barista': { path: 'cafe_path', level: 1 },
+                'personal_trainer': { path: 'fitness_path', level: 1 },
+                'bank_teller': { path: 'banking_path', level: 1 },
+                'bookstore_clerk': { path: 'bookstore_path', level: 1 },
+                'restaurant_server': { path: 'restaurant_path', level: 1 },
+                'tech_support': { path: 'tech_path', level: 1 },
+                'park_maintenance': { path: 'maintenance_path', level: 1 },
+                'business_consultant': { path: 'business_path', level: 2 }
+            };
+
+            const mapping = legacyMapping[gameState.currentJob];
+            if (mapping) {
+                const path = careers[mapping.path];
+                if (path && path.levels) {
+                    const level = path.levels.find(l => l.level === mapping.level);
+                    if (level) {
+                        gameState.careerPath = {
+                            pathId: mapping.path,
+                            level: mapping.level,
+                            title: level.title,
+                            experience: 0
+                        };
+                    }
+                }
+            }
+            // Clear legacy field
+            gameState.currentJob = null;
+        }
     }
 }
