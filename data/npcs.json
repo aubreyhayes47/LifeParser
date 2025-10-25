@@ -1,13 +1,24 @@
 {
   "owner": {
     "id": "owner",
-    "name": "Café Owner",
+    "name": "Caf\u00e9 Owner",
     "location": "cafe",
+    "initialRelationship": 0,
     "dialogues": {
       "default": [
-        "You approach the café owner, a friendly middle-aged woman.",
+        "You approach the caf\u00e9 owner, a friendly middle-aged woman.",
         "\"Welcome! Looking for a job or interested in buying the place?\"",
         "She laughs. \"Just kidding about buying it... unless you have $50,000?\""
+      ],
+      "high": [
+        "The caf\u00e9 owner greets you warmly with a genuine smile.",
+        "\"Great to see you again, friend! You're becoming a regular around here.\"",
+        "\"If you're serious about buying the caf\u00e9, I'd give you a better deal - $45,000.\""
+      ],
+      "low": [
+        "The caf\u00e9 owner gives you a cold, professional nod.",
+        "\"What do you want?\" she asks curtly.",
+        "\"We don't have time for idle chat. Buy something or move along.\""
       ]
     }
   },
@@ -15,10 +26,20 @@
     "id": "trainer",
     "name": "Gym Trainer",
     "location": "gym",
+    "initialRelationship": 0,
     "dialogues": {
       "default": [
         "The muscular trainer nods at you.",
         "\"Want to build some muscle? A good workout session costs $20.\""
+      ],
+      "high": [
+        "The trainer gives you a firm handshake and a wide grin.",
+        "\"Looking strong! Your dedication is paying off. Keep it up!\"",
+        "\"For a committed member like you, I'll give you sessions for $15.\""
+      ],
+      "low": [
+        "The trainer barely acknowledges you.",
+        "\"If you're not serious about fitness, don't waste my time.\""
       ]
     }
   },
@@ -26,10 +47,21 @@
     "id": "loan_officer",
     "name": "Loan Officer",
     "location": "bank",
+    "initialRelationship": 0,
     "dialogues": {
       "default": [
         "The loan officer adjusts his glasses and smiles professionally.",
         "\"We offer business loans from $5,000 to $50,000 at 8% interest. What do you need?\""
+      ],
+      "high": [
+        "The loan officer stands and shakes your hand warmly.",
+        "\"Excellent to see our valued customer! Your financial responsibility hasn't gone unnoticed.\"",
+        "\"For someone with your track record, we can offer 5% interest instead of the usual 8%.\""
+      ],
+      "low": [
+        "The loan officer looks at you skeptically.",
+        "\"Our loans come with 10% interest for high-risk applicants. That includes you.\"",
+        "\"You'll need to build trust before we consider better terms.\""
       ]
     }
   },
@@ -37,10 +69,20 @@
     "id": "barista",
     "name": "Barista",
     "location": "cafe",
+    "initialRelationship": 0,
     "dialogues": {
       "default": [
         "You chat with the barista. They seem friendly.",
         "\"This job keeps me busy, but I enjoy making people's morning coffee!\""
+      ],
+      "high": [
+        "The barista lights up when they see you.",
+        "\"Hey friend! Your usual? On the house today - you've been such a great customer!\"",
+        "\"I love talking with you. You really brighten my day!\""
+      ],
+      "low": [
+        "The barista barely looks up from the coffee machine.",
+        "\"What can I get you?\" they ask in a monotone voice."
       ]
     }
   },
@@ -54,7 +96,8 @@
         "\"We're always looking for passionate trainers. If you're interested in a career here, let me know!\"",
         "\"Requirements: 50 strength, 30 charisma. Pay is $80 per shift.\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "bank_manager": {
     "id": "bank_manager",
@@ -66,7 +109,8 @@
         "\"We value integrity and precision. Are you interested in joining our team?\"",
         "\"Teller positions require 40 intelligence and 30 charisma. Pay is $90 per shift.\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "bookstore_owner": {
     "id": "bookstore_owner",
@@ -78,7 +122,8 @@
         "\"Welcome to Novel Ideas! Every book here has been personally selected.\"",
         "\"If you love books and people, we might have a position for you. $70 per shift.\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "bookstore_clerk": {
     "id": "bookstore_clerk",
@@ -90,7 +135,8 @@
         "\"This place is amazing - I get to read and help people find their next favorite book!\"",
         "\"Requirements are pretty reasonable: 30 intelligence and 25 charisma.\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "head_chef": {
     "id": "head_chef",
@@ -102,7 +148,8 @@
         "\"In my kitchen, we create art. Every dish tells a story.\"",
         "\"The front of house is equally important - our servers make $85 per shift.\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "restaurant_manager": {
     "id": "restaurant_manager",
@@ -114,7 +161,8 @@
         "\"The Golden Fork maintains the highest standards of service.\"",
         "\"We're selective about our staff. 35 charisma minimum, and you need stamina.\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "server": {
     "id": "server",
@@ -126,7 +174,8 @@
         "\"The tips here are great, and the atmosphere is wonderful.\"",
         "\"It's demanding work, but very rewarding!\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "tech_specialist": {
     "id": "tech_specialist",
@@ -138,7 +187,8 @@
         "\"Technology moves fast - you have to love learning to work here.\"",
         "\"We need smart, personable people. 50 intelligence, 25 charisma. $100 per shift.\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "store_manager": {
     "id": "store_manager",
@@ -150,7 +200,8 @@
         "\"TechHub is more than electronics - we're about empowering people with technology.\"",
         "\"If you have the skills and passion, we want you on our team.\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "park_ranger": {
     "id": "park_ranger",
@@ -162,7 +213,8 @@
         "\"This park is a treasure. We work hard to keep it beautiful for everyone.\"",
         "\"Maintenance positions are available - 40 strength required, $75 per shift.\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "maintenance_worker": {
     "id": "maintenance_worker",
@@ -174,7 +226,8 @@
         "\"I love working outdoors. Every day I help keep this place special.\"",
         "\"The work keeps you fit - I've never felt better!\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "street_vendor": {
     "id": "street_vendor",
@@ -186,7 +239,8 @@
         "\"Fresh snacks and drinks! Get 'em while they're hot!\"",
         "\"Been working this corner for five years - know everyone around here!\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "musician": {
     "id": "musician",
@@ -198,7 +252,8 @@
         "\"Music is freedom, you know? Every day is different out here.\"",
         "\"Some days are better than others, but I wouldn't trade this life.\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "receptionist": {
     "id": "receptionist",
@@ -210,7 +265,8 @@
         "\"Welcome to the Downtown Office Building. How may I assist you?\"",
         "\"Many successful companies have offices here. Are you here for an interview?\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "business_consultant": {
     "id": "business_consultant",
@@ -223,7 +279,8 @@
         "\"We're always looking for talented consultants - it's demanding but pays $200 per shift.\"",
         "\"Requirements: 70 intelligence, 60 business skill, 50 charisma. Are you qualified?\""
       ]
-    }
+    },
+    "initialRelationship": 0
   },
   "ceo": {
     "id": "ceo",
@@ -235,6 +292,7 @@
         "\"Vision and execution - that's what separates dreamers from achievers.\"",
         "\"I started with nothing and built this empire. What's your plan?\""
       ]
-    }
+    },
+    "initialRelationship": 0
   }
 }
