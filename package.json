@@ -1,0 +1,28 @@
+{
+  "name": "lifeparser",
+  "version": "1.0.0",
+  "description": "A text-based life simulation game with natural language processing",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "npx http-server . -p 8080 -o -c-1",
+    "lint": "eslint src/**/*.js",
+    "lint:fix": "eslint src/**/*.js --fix",
+    "format": "prettier --write \"src/**/*.js\" \"public/**/*.{html,css}\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"public/**/*.{html,css}\""
+  },
+  "keywords": [
+    "game",
+    "text-based",
+    "simulation",
+    "nlp"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^10.1.8",
+    "http-server": "^14.1.1",
+    "prettier": "^3.2.5"
+  }
+}
