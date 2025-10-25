@@ -3,7 +3,7 @@
  * Main game logic and command processing
  */
 
-import { gameState, initializeGameState } from './gameState.js';
+import { gameState, initializeGameState, saveGameState, loadGameState, hasSavedGame, getSaveTimestamp } from './gameState.js';
 import { locations } from './locations.js';
 import { NLPParser } from './parser.js';
 import { dataLoader } from './dataLoader.js';
@@ -16,7 +16,24 @@ export class GameEngine {
     }
 
     init() {
-        // Initialize game state with loaded config
+        // Try to load saved game first
+        if (hasSavedGame()) {
+            const success = loadGameState();
+            if (success) {
+                const timestamp = getSaveTimestamp();
+                const date = timestamp ? new Date(timestamp).toLocaleString() : 'unknown time';
+                this.output('═══════════════════════════════════════════════════', 'system');
+                this.output('SAVE GAME LOADED', 'success');
+                this.output(`Last saved: ${date}`, 'system');
+                this.output('═══════════════════════════════════════════════════', 'system');
+                this.output('');
+                this.updateUI();
+                this.describeLocation();
+                return;
+            }
+        }
+
+        // No saved game or load failed, start new game
         initializeGameState();
         this.displayWelcome();
         this.updateUI();
@@ -108,6 +125,9 @@ export class GameEngine {
 
         this.updateUI();
         this.checkRandomEvents();
+        
+        // Auto-save after each command
+        this.autoSave();
     }
 
     handleMovement(command) {
@@ -421,7 +441,10 @@ export class GameEngine {
         this.output('  • stats - View full character stats', 'system');
         this.output('  • check [thing] - Examine something', 'system');
         this.output('  • inventory - View items', 'system');
-        this.output('  • save/load - Save or load game', 'system');
+        this.output('  • save - Save game to browser storage', 'system');
+        this.output('  • load - Load saved game from browser storage', 'system');
+        this.output('', 'system');
+        this.output('Note: Game auto-saves after every action.', 'system');
     }
 
     showStats() {
@@ -497,40 +520,46 @@ export class GameEngine {
     }
 
     saveGame() {
-        const saveData = JSON.stringify(gameState);
-        const blob = new Blob([saveData], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'lifeparser_save.json';
-        a.click();
-        this.output('Game saved! Download the file to load later.', 'success');
+        const success = saveGameState();
+        if (success) {
+            const timestamp = new Date().toLocaleString();
+            this.output('═══════════════════════════════════════════════════', 'system');
+            this.output('GAME SAVED', 'success');
+            this.output(`Saved at: ${timestamp}`, 'system');
+            this.output('Your progress has been automatically saved to your browser.', 'description');
+            this.output('═══════════════════════════════════════════════════', 'system');
+        } else {
+            this.output('Failed to save game. Please try again.', 'error');
+        }
     }
 
     loadGame() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = e => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = event => {
-                try {
-                    const loaded = JSON.parse(event.target.result);
-                    Object.assign(gameState, loaded);
-                    this.updateUI();
-                    this.output('Game loaded successfully!', 'success');
-                    this.describeLocation();
-                } catch (err) {
-                    this.output('Failed to load save file.', 'error');
-                }
-            };
-            reader.readAsText(file);
-        };
-        input.click();
+        if (!hasSavedGame()) {
+            this.output('No saved game found.', 'error');
+            return;
+        }
+
+        const success = loadGameState();
+        if (success) {
+            const timestamp = getSaveTimestamp();
+            const date = timestamp ? new Date(timestamp).toLocaleString() : 'unknown time';
+            this.updateUI();
+            this.output('═══════════════════════════════════════════════════', 'system');
+            this.output('GAME LOADED', 'success');
+            this.output(`Loaded save from: ${date}`, 'system');
+            this.output('═══════════════════════════════════════════════════', 'system');
+            this.output('');
+            this.describeLocation();
+        } else {
+            this.output('Failed to load game. Save file may be corrupted.', 'error');
+        }
     }
 
     // UTILITY METHODS
+    autoSave() {
+        saveGameState();
+    }
+
     advanceTime(minutes) {
         gameState.character.minute += minutes;
 
