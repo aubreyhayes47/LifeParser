@@ -39,6 +39,7 @@ export class NLPParser {
             { regex: /^(buy|purchase|open)\s+(a\s+)?(.*)/i, action: 'buy', target: 3 },
             { regex: /^(help|commands|\?)/i, action: 'help' },
             { regex: /^(inventory|inv|items)/i, action: 'inventory' },
+            { regex: /^(jobs|careers|positions)/i, action: 'jobs' },
             { regex: /^stats/i, action: 'stats' },
             { regex: /^save/i, action: 'save' },
             { regex: /^load/i, action: 'load' }

@@ -15,11 +15,38 @@ import { locations } from './locations.js';
 import { NLPParser } from './parser.js';
 import { dataLoader } from './dataLoader.js';
 
+// Constants for game mechanics
+const ENERGY_PER_HOUR = 3; // Energy cost per hour of work
+const HUNGER_PER_HOUR = 2; // Hunger increase per hour of work
+
+// Skill name mapping for display
+const SKILL_DISPLAY_NAMES = {
+    health: 'Health',
+    energy: 'Energy',
+    hunger: 'Hunger',
+    intelligence: 'Intelligence',
+    charisma: 'Charisma',
+    strength: 'Strength',
+    businessSkill: 'Business Skill'
+};
+
 export class GameEngine {
     constructor() {
         this.parser = new NLPParser();
         this.outputElement = document.getElementById('output-container');
         this.inputElement = document.getElementById('command-input');
+    }
+
+    /**
+     * Format skill name for display
+     * @param {string} skillName - Internal skill name
+     * @returns {string} Formatted skill name
+     */
+    formatSkillName(skillName) {
+        if (!skillName || typeof skillName !== 'string') {
+            return 'Unknown';
+        }
+        return SKILL_DISPLAY_NAMES[skillName] || skillName.charAt(0).toUpperCase() + skillName.slice(1);
     }
 
     init() {
@@ -112,6 +139,9 @@ export class GameEngine {
                 break;
             case 'inventory':
                 this.showInventory();
+                break;
+            case 'jobs':
+                this.showJobs();
                 break;
             case 'stats':
                 this.showStats();
@@ -246,8 +276,10 @@ export class GameEngine {
     handleWork() {
         const loc = gameState.currentLocation;
         const config = dataLoader.getConfig();
+        const careers = dataLoader.getCareers();
 
-        if (loc === 'gym') {
+        // Special case: Gym workout (not a job)
+        if (loc === 'gym' && !gameState.flags.hasJob) {
             if (gameState.character.money < config.prices.gymSession) {
                 this.output(
                     `You don't have enough money for a gym session ($${config.prices.gymSession}).`,
@@ -267,25 +299,76 @@ export class GameEngine {
                 'success'
             );
             this.output(`Strength +2, Energy -30, $${config.prices.gymSession} spent`, 'system');
-        } else if (loc === 'cafe') {
-            if (!gameState.flags.hasJob) {
-                this.output("You need to apply for a job first. Try 'apply for job'.", 'error');
-                return;
-            }
+            return;
+        }
 
-            this.modifyMoney(config.prices.cafeWage);
-            this.modifyEnergy(-25);
-            this.modifyHunger(15);
-            gameState.character.businessSkill += 1;
-            this.advanceTime(240);
+        // Check if player has a job
+        if (!gameState.flags.hasJob || !gameState.currentJob) {
+            this.output("You need to apply for a job first. Try 'apply for job' at various locations.", 'error');
+            return;
+        }
 
+        // Get current career data
+        const career = careers[gameState.currentJob];
+        if (!career) {
+            this.output("Error: Your job data is missing. Please apply for a job again.", 'error');
+            gameState.flags.hasJob = false;
+            gameState.currentJob = null;
+            return;
+        }
+
+        // Check if player is at the right location for their job
+        if (loc !== career.location) {
             this.output(
-                'You work a 4-hour shift at the café, serving customers and managing the counter.',
-                'success'
+                `You need to go to ${career.location} to work as a ${career.name}.`,
+                'error'
             );
-            this.output(`Earned $${config.prices.cafeWage}, Business Skill +1`, 'system');
-        } else {
-            this.output("There's nothing to work on here.", 'error');
+            return;
+        }
+
+        // Check if player has enough energy
+        const energyRequired = Math.floor(career.hoursPerShift * ENERGY_PER_HOUR);
+        if (gameState.character.energy < energyRequired) {
+            this.output(
+                `You're too tired to work. You need at least ${energyRequired} energy for a ${career.hoursPerShift}-hour shift.`,
+                'error'
+            );
+            this.output("Try sleeping to restore your energy.", 'system');
+            return;
+        }
+
+        // Calculate earnings (wage is per shift)
+        const earnings = career.wage;
+
+        // Apply work effects
+        this.modifyMoney(earnings);
+        this.modifyEnergy(-energyRequired);
+        this.modifyHunger(Math.floor(career.hoursPerShift * HUNGER_PER_HOUR));
+        this.advanceTime(career.hoursPerShift * 60);
+
+        // Apply skill gains
+        const skillMessages = [];
+        if (career.skillGains) {
+            Object.entries(career.skillGains).forEach(([skill, gain]) => {
+                if (gameState.character[skill] !== undefined) {
+                    gameState.character[skill] += gain;
+                    gameState.character[skill] = Math.min(100, gameState.character[skill]);
+                    skillMessages.push(
+                        `${this.formatSkillName(skill)} +${gain.toFixed(1)}`
+                    );
+                }
+            });
+        }
+
+        // Output success message
+        this.output(
+            `You complete a ${career.hoursPerShift}-hour shift as a ${career.name}.`,
+            'success'
+        );
+        this.output(`Earned $${earnings}`, 'system');
+
+        if (skillMessages.length > 0) {
+            this.output(skillMessages.join(', '), 'system');
         }
     }
 
@@ -374,24 +457,68 @@ export class GameEngine {
     }
 
     handleApply() {
-        if (gameState.currentLocation !== 'cafe') {
+        const loc = gameState.currentLocation;
+        const careers = dataLoader.getCareers();
+
+        // Find careers available at current location
+        const availableCareers = Object.entries(careers).filter(
+            ([_id, career]) => career.location === loc
+        );
+
+        if (availableCareers.length === 0) {
             this.output('There are no job openings here.', 'error');
             return;
         }
 
         if (gameState.flags.hasJob) {
-            this.output('You already work here!', 'error');
+            this.output(`You already have a job as a ${careers[gameState.currentJob].name}.`, 'error');
+            this.output("You'll need to quit your current job before applying for a new one.", 'system');
             return;
         }
 
-        const config = dataLoader.getConfig();
-        gameState.flags.hasJob = true;
-        this.output('The owner smiles and shakes your hand.', 'success');
-        this.output(
-            `"Welcome aboard! You can work shifts by typing 'work'. We pay $${config.prices.cafeWage} per 4-hour shift."`,
-            'description'
-        );
-        this.advanceTime(15);
+        // Check each available career for requirements
+        let qualifiedCareer = null;
+        const failedRequirements = {};
+
+        for (const [careerId, career] of availableCareers) {
+            const requirementCheck = this.checkRequirements(career.requirements || {});
+            if (requirementCheck.met) {
+                qualifiedCareer = [careerId, career];
+                break;
+            } else {
+                failedRequirements[careerId] = requirementCheck.missing;
+            }
+        }
+
+        if (qualifiedCareer) {
+            const [careerId, career] = qualifiedCareer;
+            gameState.flags.hasJob = true;
+            gameState.currentJob = careerId;
+
+            this.output('The hiring manager smiles and shakes your hand.', 'success');
+            this.output(
+                `"Welcome aboard as our new ${career.name}! You can work shifts by typing 'work'. We pay $${career.wage} per ${career.hoursPerShift}-hour shift."`,
+                'description'
+            );
+            this.advanceTime(15);
+        } else {
+            // Show why player didn't qualify
+            this.output("Unfortunately, you don't meet the requirements for the available positions.", 'error');
+            this.output('', 'system');
+            this.output('AVAILABLE POSITIONS:', 'description');
+
+            for (const [careerId, career] of availableCareers) {
+                this.output(`\n${career.name} - $${career.wage}/shift`, 'system');
+                this.output(`  ${career.description}`, 'description');
+
+                if (failedRequirements[careerId] && failedRequirements[careerId].length > 0) {
+                    this.output('  Missing requirements:', 'error');
+                    failedRequirements[careerId].forEach(req => {
+                        this.output(`    • ${req}`, 'error');
+                    });
+                }
+            }
+        }
     }
 
     handleBuy(command) {
@@ -434,7 +561,7 @@ export class GameEngine {
         this.output('INTERACTION:', 'description');
         this.output('  • talk to [person] - Speak with NPCs', 'system');
         this.output('  • work - Do activities at current location', 'system');
-        this.output('  • apply for job - Get hired (at café)', 'system');
+        this.output('  • apply for job - Get hired (check requirements first)', 'system');
         this.output('');
         this.output('BASIC NEEDS:', 'description');
         this.output('  • sleep - Rest at home (restores energy)', 'system');
@@ -446,6 +573,7 @@ export class GameEngine {
         this.output('');
         this.output('INFO:', 'description');
         this.output('  • stats - View full character stats', 'system');
+        this.output('  • jobs - View all available careers and requirements', 'system');
         this.output('  • check [thing] - Examine something', 'system');
         this.output('  • inventory - View items', 'system');
         this.output('  • save - Save game to browser storage', 'system');
@@ -456,6 +584,7 @@ export class GameEngine {
 
     showStats() {
         const c = gameState.character;
+        const careers = dataLoader.getCareers();
         this.output('═══════════════════════════════════════════════════', 'system');
         this.output('CHARACTER STATS', 'location');
         this.output('═══════════════════════════════════════════════════', 'system');
@@ -472,6 +601,18 @@ export class GameEngine {
         this.output(`  Strength:      ${c.strength}/100`, 'system');
         this.output(`  Business:      ${c.businessSkill}/100`, 'system');
         this.output('');
+        this.output('CAREER:', 'description');
+        if (gameState.currentJob && careers[gameState.currentJob]) {
+            const career = careers[gameState.currentJob];
+            this.output(
+                `  Current Job:  ${career.name} at ${career.location}`,
+                'system'
+            );
+            this.output(`  Wage:         $${career.wage} per ${career.hoursPerShift}h shift`, 'system');
+        } else {
+            this.output('  Current Job:  Unemployed', 'system');
+        }
+        this.output('');
         this.output('FINANCIAL:', 'description');
         this.output(`  Cash:        $${c.money}`, 'system');
         this.output(
@@ -485,6 +626,76 @@ export class GameEngine {
         gameState.inventory.forEach(item => {
             this.output(`  • ${item}`, 'system');
         });
+    }
+
+    showJobs() {
+        const careers = dataLoader.getCareers();
+        const loc = gameState.currentLocation;
+
+        this.output('═══════════════════════════════════════════════════', 'system');
+        this.output('AVAILABLE CAREERS', 'location');
+        this.output('═══════════════════════════════════════════════════', 'system');
+        this.output('');
+
+        // Find careers at current location
+        const localCareers = Object.entries(careers).filter(
+            ([_id, career]) => career.location === loc
+        );
+
+        if (localCareers.length > 0) {
+            this.output('AT YOUR CURRENT LOCATION:', 'description');
+            localCareers.forEach(([_careerId, career]) => {
+                const requirementCheck = this.checkRequirements(career.requirements || {});
+                const qualifies = requirementCheck.met ? '✓' : '✗';
+
+                this.output(
+                    `\n${qualifies} ${career.name} - $${career.wage} per ${career.hoursPerShift}h shift`,
+                    requirementCheck.met ? 'success' : 'system'
+                );
+                this.output(`  ${career.description}`, 'description');
+
+                if (career.requirements) {
+                    const reqList = [];
+                    Object.entries(career.requirements).forEach(([skill, minValue]) => {
+                        const currentValue = gameState.character[skill] || 0;
+                        const met = currentValue >= minValue;
+                        reqList.push(
+                            `${this.formatSkillName(skill)}: ${currentValue}/${minValue}${met ? ' ✓' : ''}`
+                        );
+                    });
+                    this.output(`  Requirements: ${reqList.join(', ')}`, 'system');
+                }
+
+                if (career.skillGains) {
+                    const gains = Object.entries(career.skillGains)
+                        .map(([skill, gain]) => `${this.formatSkillName(skill)} +${gain}`)
+                        .join(', ');
+                    this.output(`  Skill Gains: ${gains}`, 'system');
+                }
+            });
+            this.output('');
+        }
+
+        // Show all other careers
+        const otherCareers = Object.entries(careers).filter(
+            ([_id, career]) => career.location !== loc
+        );
+
+        if (otherCareers.length > 0) {
+            this.output('OTHER CAREERS:', 'description');
+            otherCareers.forEach(([_careerId, career]) => {
+                const requirementCheck = this.checkRequirements(career.requirements || {});
+                const qualifies = requirementCheck.met ? '✓' : '✗';
+
+                this.output(
+                    `${qualifies} ${career.name} at ${career.location} - $${career.wage}/shift`,
+                    'system'
+                );
+            });
+            this.output('');
+        }
+
+        this.output("Type 'apply for job' at a location to apply for available positions.", 'system');
     }
 
     checkRandomEvents() {
@@ -568,6 +779,66 @@ export class GameEngine {
     // UTILITY METHODS
     autoSave() {
         saveGameState();
+    }
+
+    /**
+     * Generic requirements checking function
+     * @param {Object} requirements - Requirements object with stats, items, flags, etc.
+     * @returns {Object} { met: boolean, missing: Array<string> }
+     */
+    checkRequirements(requirements) {
+        if (!requirements) {
+            return { met: true, missing: [] };
+        }
+
+        const missing = [];
+
+        // Check stat requirements
+        if (requirements.stats) {
+            Object.entries(requirements.stats).forEach(([stat, minValue]) => {
+                if (gameState.character[stat] < minValue) {
+                    missing.push(
+                        `${this.formatSkillName(stat)}: ${gameState.character[stat]}/${minValue}`
+                    );
+                }
+            });
+        }
+
+        // Legacy support: direct skill requirements (for backward compatibility with careers.json)
+        // Only check properties that are skills (listed in SKILL_DISPLAY_NAMES)
+        const validSkills = Object.keys(SKILL_DISPLAY_NAMES);
+        validSkills.forEach(skill => {
+            if (requirements[skill] && !requirements.stats && typeof gameState.character[skill] === 'number') {
+                if (gameState.character[skill] < requirements[skill]) {
+                    missing.push(
+                        `${this.formatSkillName(skill)}: ${gameState.character[skill]}/${requirements[skill]}`
+                    );
+                }
+            }
+        });
+
+        // Check item requirements
+        if (requirements.items) {
+            requirements.items.forEach(item => {
+                if (!gameState.inventory.includes(item)) {
+                    missing.push(`Item: ${item}`);
+                }
+            });
+        }
+
+        // Check flag requirements
+        if (requirements.flags) {
+            Object.entries(requirements.flags).forEach(([flag, value]) => {
+                if (gameState.flags[flag] !== value) {
+                    missing.push(`Flag: ${flag} must be ${value}`);
+                }
+            });
+        }
+
+        return {
+            met: missing.length === 0,
+            missing: missing
+        };
     }
 
     advanceTime(minutes) {
