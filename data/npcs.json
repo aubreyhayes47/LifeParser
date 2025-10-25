@@ -1,22 +1,22 @@
 {
   "owner": {
     "id": "owner",
-    "name": "Caf\u00e9 Owner",
+    "name": "Café Owner",
     "location": "cafe",
     "initialRelationship": 0,
     "dialogues": {
       "default": [
-        "You approach the caf\u00e9 owner, a friendly middle-aged woman.",
+        "You approach the café owner, a friendly middle-aged woman.",
         "\"Welcome! Looking for a job or interested in buying the place?\"",
         "She laughs. \"Just kidding about buying it... unless you have $50,000?\""
       ],
       "high": [
-        "The caf\u00e9 owner greets you warmly with a genuine smile.",
+        "The café owner greets you warmly with a genuine smile.",
         "\"Great to see you again, friend! You're becoming a regular around here.\"",
-        "\"If you're serious about buying the caf\u00e9, I'd give you a better deal - $45,000.\""
+        "\"If you're serious about buying the café, I'd give you a better deal - $45,000.\""
       ],
       "low": [
-        "The caf\u00e9 owner gives you a cold, professional nod.",
+        "The café owner gives you a cold, professional nod.",
         "\"What do you want?\" she asks curtly.",
         "\"We don't have time for idle chat. Buy something or move along.\""
       ]

@@ -253,15 +253,14 @@ export class GameEngine {
 
             // Improve relationship slightly when talking
             const relationshipChange = 2;
+            const oldRelationship = this.getRelationship(npcKey);
             const newRelationship = this.modifyRelationship(npcKey, relationshipChange);
             
-            // Show relationship change if significant
-            if (Math.abs(newRelationship) >= 30 && Math.abs(newRelationship - relationshipChange) < 30) {
-                if (newRelationship >= 30) {
-                    this.output(`Your relationship with ${npc.name} has improved significantly!`, 'success');
-                } else if (newRelationship <= -30) {
-                    this.output(`Your relationship with ${npc.name} has deteriorated.`, 'error');
-                }
+            // Show relationship change if crossing significant threshold
+            if (this.didCrossThreshold(oldRelationship, newRelationship, 30)) {
+                this.output(`Your relationship with ${npc.name} has improved significantly!`, 'success');
+            } else if (this.didCrossThreshold(oldRelationship, newRelationship, -30)) {
+                this.output(`Your relationship with ${npc.name} has deteriorated.`, 'error');
             }
         } else {
             this.output(`You chat with the ${target}. They seem friendly.`, 'description');
@@ -333,10 +332,13 @@ export class GameEngine {
                 'You hit the weights hard. Your muscles burn, but you feel stronger!',
                 'success'
             );
-            this.output(
-                `Strength +2, Energy -30, $${gymPrice} spent${relationship >= 30 ? ' (Discounted!)' : ''}`,
-                'system'
-            );
+            
+            // Format workout results message
+            let resultMessage = `Strength +2, Energy -30, $${gymPrice} spent`;
+            if (relationship >= 30) {
+                resultMessage += ' (Discounted!)';
+            }
+            this.output(resultMessage, 'system');
             return;
         }
 
@@ -524,14 +526,21 @@ export class GameEngine {
 
         this.modifyMoney(amount);
         this.output(`Loan approved! You receive $${amount}.`, 'success');
-        this.output(
-            `Interest rate: ${(interestRate * 100).toFixed(1)}% ${relationship >= 30 ? '(Reduced due to good relationship!)' : relationship <= -30 ? '(Increased due to poor relationship)' : ''}`,
-            relationship >= 30 ? 'success' : relationship <= -30 ? 'error' : 'system'
-        );
-        this.output(
-            'Remember: Invest wisely!',
-            'system'
-        );
+        
+        // Format interest rate message based on relationship
+        let rateMessage = `Interest rate: ${(interestRate * 100).toFixed(1)}%`;
+        let messageType = 'system';
+        
+        if (relationship >= 30) {
+            rateMessage += ' (Reduced due to good relationship!)';
+            messageType = 'success';
+        } else if (relationship <= -30) {
+            rateMessage += ' (Increased due to poor relationship)';
+            messageType = 'error';
+        }
+        
+        this.output(rateMessage, messageType);
+        this.output('Remember: Invest wisely!', 'system');
         this.advanceTime(30);
     }
 
@@ -1196,6 +1205,18 @@ export class GameEngine {
         if (value >= 30) return 'high';
         if (value <= -30) return 'low';
         return 'default';
+    }
+
+    /**
+     * Check if a value crossed a threshold
+     * @param {number} oldValue - Previous value
+     * @param {number} newValue - New value
+     * @param {number} threshold - Threshold to check
+     * @returns {boolean} True if crossed threshold
+     */
+    didCrossThreshold(oldValue, newValue, threshold) {
+        return Math.abs(newValue) >= Math.abs(threshold) && 
+               Math.abs(oldValue) < Math.abs(threshold);
     }
 
     output(text, type = 'description') {
