@@ -85,6 +85,19 @@ This project uses:
 
 ## 🎯 How to Play
 
+### Save System
+
+**LifeParser** uses browser localStorage for automatic and manual game saves:
+
+- **Auto-Save**: Your game is automatically saved after every action you take
+- **Manual Save**: Type `save` to manually save your game and see save confirmation
+- **Auto-Load**: When you return to the game, your last save is automatically loaded
+- **Manual Load**: Type `load` to manually reload your last saved game
+- **Data Persistence**: Saves are stored in your browser's localStorage and persist across sessions
+- **Forward Compatibility**: The save system merges saved data with default values, ensuring compatibility with future game updates
+
+**Note**: Clearing your browser data will delete saved games. Each browser stores saves independently.
+
 ### Basic Commands
 
 **Movement:**
@@ -114,11 +127,21 @@ This project uses:
 
 The game is built with a modular architecture using ES6 modules:
 
-- **gameState.js**: Centralized state management
+- **gameState.js**: Centralized state management with localStorage-based save/load system
 - **locations.js**: World data and location definitions
 - **parser.js**: Natural language command parsing
 - **engine.js**: Core game logic and command handlers
 - **main.js**: Application entry point and event handlers
+
+### Save System Architecture
+
+The game uses browser localStorage for persistence:
+
+- **Storage Key**: `lifeparser_save` stores the serialized game state as JSON
+- **Timestamp Key**: `lifeparser_save_timestamp` stores the ISO timestamp of the last save
+- **Auto-Save**: Triggered after every command execution
+- **State Merging**: On load, saved state is merged with default state structure to ensure forward compatibility when new properties are added
+- **Error Handling**: Save/load operations include try-catch blocks with user feedback
 
 ## 📝 License
 
