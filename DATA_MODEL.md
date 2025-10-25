@@ -53,9 +53,24 @@ Defines all non-player characters in the game.
     "id": "npc_id (should match the key)",
     "name": "NPC's display name",
     "location": "location_id where this NPC is found",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 9,
+          "endHour": 17,
+          "breaks": [
+            { "startHour": 12, "startMinute": 0, "endHour": 13, "endMinute": 0 }
+          ]
+        }
+      ]
+    },
     "dialogues": {
       "default": ["array", "of", "dialogue", "lines"],
-      "quest_name": ["context-specific", "dialogue"]
+      "high": ["dialogue", "for", "high", "relationship"],
+      "low": ["dialogue", "for", "low", "relationship"]
     }
   }
 }
@@ -65,6 +80,21 @@ Defines all non-player characters in the game.
 - `location`: Must match a location ID in locations.json
 - NPC ID must be listed in the `npcs[]` array of the corresponding location
 
+**Schedule System:**
+- `schedule`: Optional field that defines when an NPC is available
+  - `type`: Currently supports "weekly" for weekly recurring schedules
+  - `available`: Array of availability windows
+    - `days`: Array of day names (lowercase: monday, tuesday, etc.)
+    - `startHour`: Hour when NPC becomes available (0-23)
+    - `endHour`: Hour when NPC becomes unavailable (0-23)
+    - `breaks`: Optional array of break periods when NPC is temporarily unavailable
+      - `startHour`, `startMinute`: When break starts
+      - `endHour`, `endMinute`: When break ends
+- If no schedule is provided, the NPC is available at all times (backward compatibility)
+- Players can only interact with NPCs during their scheduled availability
+- The game shows which NPCs are present and which are away with their next availability time
+- Players can use the `schedule` command to view NPC schedules
+
 **Example:**
 ```json
 {
@@ -72,6 +102,26 @@ Defines all non-player characters in the game.
     "id": "barista",
     "name": "Barista",
     "location": "cafe",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 6,
+          "endHour": 14,
+          "breaks": [
+            { "startHour": 10, "startMinute": 0, "endHour": 10, "endMinute": 15 }
+          ]
+        },
+        {
+          "days": ["saturday"],
+          "startHour": 7,
+          "endHour": 15,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "You chat with the barista. They seem friendly.",

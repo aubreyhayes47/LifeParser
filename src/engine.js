@@ -14,6 +14,7 @@ import {
 import { locations } from './locations.js';
 import { NLPParser } from './parser.js';
 import { dataLoader } from './dataLoader.js';
+import { isNPCAvailable, getNPCScheduleDescription, getNextAvailableTime } from './npcSchedule.js';
 import {
     createBusiness,
     processDailyBusiness,
@@ -128,6 +129,9 @@ export class GameEngine {
                 break;
             case 'examine':
                 this.handleExamine(command);
+                break;
+            case 'schedule':
+                this.handleSchedule(command);
                 break;
             case 'work':
                 this.handleWork();
@@ -248,7 +252,31 @@ export class GameEngine {
         this.output('');
 
         if (loc.npcs.length > 0) {
-            this.output(`People here: ${loc.npcs.join(', ')}`, 'system');
+            // Filter NPCs by their schedule availability
+            const npcs = dataLoader.getNPCs();
+            const availableNPCs = [];
+            const unavailableNPCs = [];
+
+            for (const npcId of loc.npcs) {
+                const npc = npcs[npcId];
+                if (npc && isNPCAvailable(npc, gameState.character.day, gameState.character.hour, gameState.character.minute)) {
+                    availableNPCs.push(npc.name);
+                } else if (npc) {
+                    unavailableNPCs.push({ id: npcId, npc: npc });
+                }
+            }
+
+            if (availableNPCs.length > 0) {
+                this.output(`People here: ${availableNPCs.join(', ')}`, 'system');
+            }
+
+            if (unavailableNPCs.length > 0) {
+                const unavailableNames = unavailableNPCs.map(item => {
+                    const nextTime = getNextAvailableTime(item.npc, gameState.character.day, gameState.character.hour, gameState.character.minute);
+                    return `${item.npc.name} (away${nextTime ? ', returns ' + nextTime : ''})`;
+                }).join(', ');
+                this.output(`Not here now: ${unavailableNames}`, 'system');
+            }
         }
 
         this.output(`Exits: ${loc.exits.join(', ')}`, 'system');
@@ -277,6 +305,16 @@ export class GameEngine {
 
         if (npcKey && npcs[npcKey] && npcs[npcKey].dialogues) {
             const npc = npcs[npcKey];
+            
+            // Check if NPC is available based on their schedule
+            if (!isNPCAvailable(npc, gameState.character.day, gameState.character.hour, gameState.character.minute)) {
+                this.output(`${npc.name} is not here right now.`, 'error');
+                const nextTime = getNextAvailableTime(npc, gameState.character.day, gameState.character.hour, gameState.character.minute);
+                if (nextTime) {
+                    this.output(`They will be available ${nextTime}.`, 'system');
+                }
+                return;
+            }
             
             // Get relationship level and select appropriate dialogue
             const relationshipLevel = this.getRelationshipLevel(npcKey);
@@ -330,6 +368,72 @@ export class GameEngine {
             }
         } else {
             this.output(`You examine the ${target}. Nothing special.`, 'description');
+        }
+    }
+
+    handleSchedule(command) {
+        const npcs = dataLoader.getNPCs();
+        const loc = locations[gameState.currentLocation];
+        const target = command.target;
+
+        // If no target specified, show schedules for all NPCs at current location
+        if (!target || target.trim() === '') {
+            if (loc.npcs.length === 0) {
+                this.output('There are no NPCs at this location.', 'error');
+                return;
+            }
+
+            this.output('═══════════════════════════════════════════════════', 'system');
+            this.output('NPC SCHEDULES AT THIS LOCATION', 'location');
+            this.output('═══════════════════════════════════════════════════', 'system');
+            this.output('');
+
+            for (const npcId of loc.npcs) {
+                const npc = npcs[npcId];
+                if (npc) {
+                    const schedule = getNPCScheduleDescription(npc);
+                    const available = isNPCAvailable(npc, gameState.character.day, gameState.character.hour, gameState.character.minute);
+                    const status = available ? '(HERE NOW)' : '(AWAY)';
+                    
+                    this.output(`${npc.name} ${status}`, 'description');
+                    this.output(schedule, 'system');
+                    this.output('', 'system');
+                }
+            }
+        } else {
+            // Show schedule for specific NPC
+            const npcKey = Object.keys(npcs).find(key => 
+                key.includes(target) || 
+                target.includes(key) ||
+                npcs[key].name.toLowerCase().includes(target)
+            );
+
+            if (!npcKey || !npcs[npcKey]) {
+                this.output(`Could not find NPC: ${target}`, 'error');
+                return;
+            }
+
+            const npc = npcs[npcKey];
+            const schedule = getNPCScheduleDescription(npc);
+            const available = isNPCAvailable(npc, gameState.character.day, gameState.character.hour, gameState.character.minute);
+            
+            this.output('═══════════════════════════════════════════════════', 'system');
+            this.output(`SCHEDULE FOR ${npc.name.toUpperCase()}`, 'location');
+            this.output('═══════════════════════════════════════════════════', 'system');
+            this.output('');
+            this.output(`Location: ${locations[npc.location].name}`, 'description');
+            this.output(`Current Status: ${available ? 'Available' : 'Away'}`, available ? 'success' : 'error');
+            this.output('', 'system');
+            this.output('Schedule:', 'description');
+            this.output(schedule, 'system');
+            
+            if (!available) {
+                const nextTime = getNextAvailableTime(npc, gameState.character.day, gameState.character.hour, gameState.character.minute);
+                if (nextTime) {
+                    this.output('', 'system');
+                    this.output(`Next available: ${nextTime}`, 'system');
+                }
+            }
         }
     }
 
@@ -1080,6 +1184,7 @@ export class GameEngine {
         this.output('  • stats - View full character stats', 'system');
         this.output('  • jobs - View all available careers and requirements', 'system');
         this.output('  • career - View detailed career path information', 'system');
+        this.output('  • schedule [npc] - View NPC schedules (all or specific)', 'system');
         this.output('  • check [thing] - Examine something', 'system');
         this.output('  • inventory - View items', 'system');
         this.output('  • save - Save game to browser storage', 'system');

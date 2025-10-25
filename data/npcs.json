@@ -4,6 +4,25 @@
     "name": "Café Owner",
     "location": "cafe",
     "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 6,
+          "endHour": 18,
+          "breaks": [
+            { "startHour": 12, "startMinute": 0, "endHour": 13, "endMinute": 0 }
+          ]
+        },
+        {
+          "days": ["saturday", "sunday"],
+          "startHour": 7,
+          "endHour": 15,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "You approach the café owner, a friendly middle-aged woman.",
@@ -27,6 +46,25 @@
     "name": "Gym Trainer",
     "location": "gym",
     "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 5,
+          "endHour": 22,
+          "breaks": [
+            { "startHour": 13, "startMinute": 0, "endHour": 14, "endMinute": 0 }
+          ]
+        },
+        {
+          "days": ["saturday", "sunday"],
+          "startHour": 6,
+          "endHour": 20,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The muscular trainer nods at you.",
@@ -48,6 +86,19 @@
     "name": "Loan Officer",
     "location": "bank",
     "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 9,
+          "endHour": 17,
+          "breaks": [
+            { "startHour": 12, "startMinute": 0, "endHour": 13, "endMinute": 0 }
+          ]
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The loan officer adjusts his glasses and smiles professionally.",
@@ -70,6 +121,25 @@
     "name": "Barista",
     "location": "cafe",
     "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 6,
+          "endHour": 14,
+          "breaks": [
+            { "startHour": 10, "startMinute": 0, "endHour": 10, "endMinute": 15 }
+          ]
+        },
+        {
+          "days": ["saturday"],
+          "startHour": 7,
+          "endHour": 15,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "You chat with the barista. They seem friendly.",
@@ -90,188 +160,372 @@
     "id": "gym_manager",
     "name": "Gym Manager",
     "location": "gym",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 8,
+          "endHour": 18,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The gym manager greets you warmly.",
         "\"We're always looking for passionate trainers. If you're interested in a career here, let me know!\"",
         "\"Requirements: 50 strength, 30 charisma. Pay is $80 per shift.\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "bank_manager": {
     "id": "bank_manager",
     "name": "Bank Manager",
     "location": "bank",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 9,
+          "endHour": 17,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The bank manager extends a professional handshake.",
         "\"We value integrity and precision. Are you interested in joining our team?\"",
         "\"Teller positions require 40 intelligence and 30 charisma. Pay is $90 per shift.\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "bookstore_owner": {
     "id": "bookstore_owner",
     "name": "Margaret Chen",
     "location": "bookstore",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"],
+          "startHour": 9,
+          "endHour": 19,
+          "breaks": [
+            { "startHour": 13, "startMinute": 0, "endHour": 14, "endMinute": 0 }
+          ]
+        },
+        {
+          "days": ["sunday"],
+          "startHour": 10,
+          "endHour": 17,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The bookstore owner smiles from behind a stack of new arrivals.",
         "\"Welcome to Novel Ideas! Every book here has been personally selected.\"",
         "\"If you love books and people, we might have a position for you. $70 per shift.\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "bookstore_clerk": {
     "id": "bookstore_clerk",
     "name": "Alex Rivera",
     "location": "bookstore",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["tuesday", "wednesday", "thursday", "friday", "saturday"],
+          "startHour": 10,
+          "endHour": 18,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "A young clerk with glasses looks up from organizing shelves.",
         "\"This place is amazing - I get to read and help people find their next favorite book!\"",
         "\"Requirements are pretty reasonable: 30 intelligence and 25 charisma.\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "head_chef": {
     "id": "head_chef",
     "name": "Chef Pierre Dubois",
     "location": "restaurant",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+          "startHour": 11,
+          "endHour": 23,
+          "breaks": [
+            { "startHour": 15, "startMinute": 0, "endHour": 16, "endMinute": 30 }
+          ]
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The head chef, wearing a pristine white coat, nods at you.",
         "\"In my kitchen, we create art. Every dish tells a story.\"",
         "\"The front of house is equally important - our servers make $85 per shift.\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "restaurant_manager": {
     "id": "restaurant_manager",
     "name": "Diana Martinez",
     "location": "restaurant",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+          "startHour": 10,
+          "endHour": 22,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The restaurant manager approaches with practiced elegance.",
         "\"The Golden Fork maintains the highest standards of service.\"",
         "\"We're selective about our staff. 35 charisma minimum, and you need stamina.\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "server": {
     "id": "server",
     "name": "Restaurant Server",
     "location": "restaurant",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["wednesday", "thursday", "friday", "saturday", "sunday"],
+          "startHour": 17,
+          "endHour": 23,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "A server balances a tray expertly while chatting.",
         "\"The tips here are great, and the atmosphere is wonderful.\"",
         "\"It's demanding work, but very rewarding!\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "tech_specialist": {
     "id": "tech_specialist",
     "name": "Kevin Park",
     "location": "tech_store",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"],
+          "startHour": 10,
+          "endHour": 20,
+          "breaks": [
+            { "startHour": 14, "startMinute": 0, "endHour": 15, "endMinute": 0 }
+          ]
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The tech specialist's eyes light up discussing the latest gadgets.",
         "\"Technology moves fast - you have to love learning to work here.\"",
         "\"We need smart, personable people. 50 intelligence, 25 charisma. $100 per shift.\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "store_manager": {
     "id": "store_manager",
     "name": "Sarah Thompson",
     "location": "tech_store",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 9,
+          "endHour": 18,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The store manager reviews inventory on a tablet.",
         "\"TechHub is more than electronics - we're about empowering people with technology.\"",
         "\"If you have the skills and passion, we want you on our team.\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "park_ranger": {
     "id": "park_ranger",
     "name": "Ranger Tom Wilson",
     "location": "park",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+          "startHour": 7,
+          "endHour": 19,
+          "breaks": [
+            { "startHour": 12, "startMinute": 0, "endHour": 13, "endMinute": 0 }
+          ]
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The park ranger tips his hat in greeting.",
         "\"This park is a treasure. We work hard to keep it beautiful for everyone.\"",
         "\"Maintenance positions are available - 40 strength required, $75 per shift.\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "maintenance_worker": {
     "id": "maintenance_worker",
     "name": "Carlos Rodriguez",
     "location": "park",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 6,
+          "endHour": 14,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The maintenance worker pauses from trimming hedges.",
         "\"I love working outdoors. Every day I help keep this place special.\"",
         "\"The work keeps you fit - I've never felt better!\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "street_vendor": {
     "id": "street_vendor",
     "name": "Street Vendor",
     "location": "downtown_plaza",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+          "startHour": 8,
+          "endHour": 18,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "A cheerful vendor calls out from their cart.",
         "\"Fresh snacks and drinks! Get 'em while they're hot!\"",
         "\"Been working this corner for five years - know everyone around here!\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "musician": {
     "id": "musician",
     "name": "Street Musician",
     "location": "downtown_plaza",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["friday", "saturday", "sunday"],
+          "startHour": 10,
+          "endHour": 20,
+          "breaks": [
+            { "startHour": 14, "startMinute": 0, "endHour": 15, "endMinute": 0 }
+          ]
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "A talented musician strums their guitar, pausing between songs.",
         "\"Music is freedom, you know? Every day is different out here.\"",
         "\"Some days are better than others, but I wouldn't trade this life.\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "receptionist": {
     "id": "receptionist",
     "name": "Jessica Lin",
     "location": "office_building",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 8,
+          "endHour": 17,
+          "breaks": [
+            { "startHour": 12, "startMinute": 0, "endHour": 13, "endMinute": 0 }
+          ]
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The receptionist greets you with a professional smile.",
         "\"Welcome to the Downtown Office Building. How may I assist you?\"",
         "\"Many successful companies have offices here. Are you here for an interview?\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "business_consultant": {
     "id": "business_consultant",
     "name": "Robert Chang",
     "location": "office_building",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "startHour": 9,
+          "endHour": 19,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "A sharply dressed consultant reviews documents on his laptop.",
@@ -279,20 +533,36 @@
         "\"We're always looking for talented consultants - it's demanding but pays $200 per shift.\"",
         "\"Requirements: 70 intelligence, 60 business skill, 50 charisma. Are you qualified?\""
       ]
-    },
-    "initialRelationship": 0
+    }
   },
   "ceo": {
     "id": "ceo",
     "name": "Victoria Stone",
     "location": "office_building",
+    "initialRelationship": 0,
+    "schedule": {
+      "type": "weekly",
+      "available": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday"],
+          "startHour": 7,
+          "endHour": 20,
+          "breaks": []
+        },
+        {
+          "days": ["friday"],
+          "startHour": 7,
+          "endHour": 15,
+          "breaks": []
+        }
+      ]
+    },
     "dialogues": {
       "default": [
         "The CEO looks up from a meeting, her presence commanding respect.",
         "\"Vision and execution - that's what separates dreamers from achievers.\"",
         "\"I started with nothing and built this empire. What's your plan?\""
       ]
-    },
-    "initialRelationship": 0
+    }
   }
 }

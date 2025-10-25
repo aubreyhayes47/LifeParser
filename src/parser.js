@@ -58,6 +58,7 @@ export class NLPParser {
                 topic: 4
             },
             { regex: /^(check|view|show)\s+(my\s+)?(.*)/i, action: 'examine', target: 3 },
+            { regex: /^(schedule|schedules)(\s+for\s+)?(.*)$/i, action: 'schedule', target: 3 },
             { regex: /^(look|look around)/i, action: 'look', target: 'room' },
             { regex: /^(work|workout|exercise)/i, action: 'work', target: 'current' },
             { regex: /^(sleep|rest|nap)/i, action: 'sleep', duration: 8 },
