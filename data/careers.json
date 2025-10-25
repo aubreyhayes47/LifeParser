@@ -70,7 +70,7 @@
     "location": "restaurant",
     "requirements": {
       "charisma": 35,
-      "energy": 60
+      "strength": 30
     },
     "wage": 85,
     "skillGains": {
@@ -101,8 +101,7 @@
     "description": "Maintain the park grounds and facilities",
     "location": "park",
     "requirements": {
-      "strength": 40,
-      "energy": 50
+      "strength": 40
     },
     "wage": 75,
     "skillGains": {
