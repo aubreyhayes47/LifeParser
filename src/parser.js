@@ -37,6 +37,15 @@ export class NLPParser {
             },
             { regex: /^apply for job/i, action: 'apply', target: 'job' },
             { regex: /^(promote|promotion|advance)/i, action: 'promote' },
+            // Business management commands
+            { regex: /^(set|change)\s+price\s+(to\s+)?(\d+\.?\d*)(%)?/i, action: 'setprice', value: 3, isPercent: 4 },
+            { regex: /^(hire|add)\s+staff/i, action: 'hirestaff' },
+            { regex: /^(fire|remove)\s+staff/i, action: 'firestaff' },
+            { regex: /^(set|change)\s+staff\s+(to\s+)?(\d+)/i, action: 'setstaff', value: 3 },
+            { regex: /^(set|change|adjust)\s+marketing\s+(to\s+)?(\d+)/i, action: 'setmarketing', value: 3 },
+            { regex: /^(upgrade|improve)\s+quality/i, action: 'upgradequality' },
+            { regex: /^(run|start|boost)\s+marketing/i, action: 'runmarketing' },
+            { regex: /^(business|businesses)\s*(info|status|report)?/i, action: 'businessinfo' },
             { regex: /^(buy|purchase|open)\s+(a\s+)?(.*)/i, action: 'buy', target: 3 },
             { regex: /^(help|commands|\?)/i, action: 'help' },
             { regex: /^(inventory|inv|items)/i, action: 'inventory' },
@@ -70,6 +79,12 @@ export class NLPParser {
                 }
                 if (pattern.duration) {
                     command.duration = pattern.duration;
+                }
+                if (pattern.value && match[pattern.value]) {
+                    command.value = parseFloat(match[pattern.value]);
+                }
+                if (pattern.isPercent && match[pattern.isPercent]) {
+                    command.isPercent = true;
                 }
 
                 return command;

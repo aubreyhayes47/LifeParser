@@ -14,6 +14,16 @@ import {
 import { locations } from './locations.js';
 import { NLPParser } from './parser.js';
 import { dataLoader } from './dataLoader.js';
+import {
+    createBusiness,
+    processDailyBusiness,
+    setBusinessPrice,
+    upgradeQuality,
+    setMarketingLevel,
+    setStaffCount,
+    getBusinessPerformance,
+    getBusinessRecommendations
+} from './business.js';
 
 // Constants for game mechanics
 const ENERGY_PER_HOUR = 3; // Energy cost per hour of work
@@ -142,6 +152,31 @@ export class GameEngine {
                 break;
             case 'buy':
                 this.handleBuy(command);
+                break;
+            // Business management commands
+            case 'setprice':
+                this.handleSetPrice(command);
+                break;
+            case 'hirestaff':
+                this.handleHireStaff();
+                break;
+            case 'firestaff':
+                this.handleFireStaff();
+                break;
+            case 'setstaff':
+                this.handleSetStaff(command);
+                break;
+            case 'setmarketing':
+                this.handleSetMarketing(command);
+                break;
+            case 'upgradequality':
+                this.handleUpgradeQuality();
+                break;
+            case 'runmarketing':
+                this.handleRunMarketing();
+                break;
+            case 'businessinfo':
+                this.showBusinessInfo();
                 break;
             case 'help':
                 this.showHelp();
@@ -288,9 +323,8 @@ export class GameEngine {
                 'description'
             );
         } else if (target.includes('business') || target.includes('cafe')) {
-            if (gameState.flags.ownsCafe) {
-                this.output('You own the Coffee Bean Café!', 'success');
-                this.output('Revenue: $200/day (currently passive)', 'description');
+            if (gameState.businesses.length > 0) {
+                this.showBusinessInfo();
             } else {
                 this.output("You don't own any businesses yet.", 'description');
             }
@@ -615,6 +649,13 @@ export class GameEngine {
         const config = dataLoader.getConfig();
 
         if (target && target.includes('cafe')) {
+            // Check if player already owns the cafe
+            const existingBusiness = gameState.businesses.find(b => b.type === 'cafe');
+            if (existingBusiness) {
+                this.output('You already own the Coffee Bean Café!', 'error');
+                return;
+            }
+            
             // Check relationship with café owner
             const relationship = this.getRelationship('owner');
             let cafePrice = config.prices.cafePrice;
@@ -637,6 +678,12 @@ export class GameEngine {
             }
 
             this.modifyMoney(-cafePrice);
+            
+            // Create new business object
+            const newBusiness = createBusiness('cafe', 'Coffee Bean Café', cafePrice);
+            gameState.businesses.push(newBusiness);
+            
+            // Keep legacy flag for backward compatibility
             gameState.flags.ownsCafe = true;
 
             this.output('═════════════════════════════════════', 'event');
@@ -648,10 +695,20 @@ export class GameEngine {
                     'success'
                 );
             }
-            this.output(
-                `The café will generate passive income of $${config.prices.cafeRevenue}/day.`,
-                'description'
-            );
+            this.output('', 'description');
+            this.output('Your café is ready for business!', 'description');
+            this.output(`Starting parameters:`, 'system');
+            this.output(`  • Price Level: 100% (balanced)`, 'system');
+            this.output(`  • Quality: 5/10 (average)`, 'system');
+            this.output(`  • Marketing: 5/10 (average)`, 'system');
+            this.output(`  • Staff: ${newBusiness.staff} employees`, 'system');
+            this.output('', 'description');
+            this.output("Manage your business with commands like:", 'system');
+            this.output("  • 'business info' - View detailed business stats", 'system');
+            this.output("  • 'set price to 120%' - Adjust pricing", 'system');
+            this.output("  • 'upgrade quality' - Improve quality", 'system');
+            this.output("  • 'set marketing to 7' - Adjust marketing", 'system');
+            this.output("  • 'set staff to 3' - Adjust staffing", 'system');
             this.output('═════════════════════════════════════', 'event');
         } else {
             this.output("You can't buy that right now.", 'error');
@@ -772,6 +829,226 @@ export class GameEngine {
         });
     }
 
+    // BUSINESS MANAGEMENT HANDLERS
+
+    handleSetPrice(command) {
+        if (gameState.businesses.length === 0) {
+            this.output("You don't own any businesses yet.", 'error');
+            return;
+        }
+
+        const business = gameState.businesses[0]; // For now, manage first business
+        let priceLevel = command.value;
+
+        // Convert percentage to decimal if needed
+        if (command.isPercent) {
+            priceLevel = priceLevel / 100;
+        }
+
+        if (setBusinessPrice(business, priceLevel)) {
+            const percentage = Math.round(priceLevel * 100);
+            this.output(
+                `${business.name} price level set to ${percentage}%.`,
+                'success'
+            );
+            
+            if (priceLevel < 0.8) {
+                this.output('Low prices will increase volume but reduce per-sale revenue.', 'system');
+            } else if (priceLevel > 1.3) {
+                this.output('High prices may drive customers away despite higher margins.', 'system');
+            } else {
+                this.output('Balanced pricing strategy.', 'system');
+            }
+        } else {
+            this.output('Price level must be between 50% and 200%.', 'error');
+        }
+    }
+
+    handleHireStaff() {
+        if (gameState.businesses.length === 0) {
+            this.output("You don't own any businesses yet.", 'error');
+            return;
+        }
+
+        const business = gameState.businesses[0];
+        if (business.staff >= 10) {
+            this.output('You already have the maximum number of staff (10).', 'error');
+            return;
+        }
+
+        setStaffCount(business, business.staff + 1);
+        this.output(`Hired 1 staff member. You now have ${business.staff} employees.`, 'success');
+        this.output(`Daily staff costs: $${business.staff * 50}`, 'system');
+    }
+
+    handleFireStaff() {
+        if (gameState.businesses.length === 0) {
+            this.output("You don't own any businesses yet.", 'error');
+            return;
+        }
+
+        const business = gameState.businesses[0];
+        if (business.staff <= 1) {
+            this.output('You need at least 1 staff member to run the business.', 'error');
+            return;
+        }
+
+        setStaffCount(business, business.staff - 1);
+        this.output(`Fired 1 staff member. You now have ${business.staff} employees.`, 'success');
+        this.output(`Daily staff costs: $${business.staff * 50}`, 'system');
+    }
+
+    handleSetStaff(command) {
+        if (gameState.businesses.length === 0) {
+            this.output("You don't own any businesses yet.", 'error');
+            return;
+        }
+
+        const business = gameState.businesses[0];
+        const staffCount = Math.floor(command.value);
+
+        if (setStaffCount(business, staffCount)) {
+            this.output(`${business.name} staff set to ${business.staff} employees.`, 'success');
+            this.output(`Daily staff costs: $${business.staff * 50}`, 'system');
+            
+            if (business.staff < 2) {
+                this.output('Warning: Understaffing will hurt service quality.', 'error');
+            } else if (business.staff > 5) {
+                this.output('Note: Overstaffing has diminishing returns.', 'system');
+            }
+        } else {
+            this.output('Staff count must be between 1 and 10.', 'error');
+        }
+    }
+
+    handleSetMarketing(command) {
+        if (gameState.businesses.length === 0) {
+            this.output("You don't own any businesses yet.", 'error');
+            return;
+        }
+
+        const business = gameState.businesses[0];
+        const level = Math.floor(command.value);
+
+        if (setMarketingLevel(business, level)) {
+            this.output(`${business.name} marketing level set to ${business.marketing}.`, 'success');
+            this.output(`Daily marketing costs: $${business.marketing * 20}`, 'system');
+        } else {
+            this.output('Marketing level must be between 0 and 10.', 'error');
+        }
+    }
+
+    handleUpgradeQuality() {
+        if (gameState.businesses.length === 0) {
+            this.output("You don't own any businesses yet.", 'error');
+            return;
+        }
+
+        const business = gameState.businesses[0];
+
+        if (business.quality >= 10) {
+            this.output('Your business is already at maximum quality (10/10)!', 'success');
+            return;
+        }
+
+        // Cost scales with current quality
+        const upgradeCost = 1000 * (business.quality + 1);
+
+        if (gameState.character.money < upgradeCost) {
+            this.output(
+                `Quality upgrade costs $${upgradeCost}. You need $${upgradeCost - gameState.character.money} more.`,
+                'error'
+            );
+            return;
+        }
+
+        this.modifyMoney(-upgradeCost);
+        upgradeQuality(business, upgradeCost);
+
+        this.output(`${business.name} quality upgraded to ${business.quality}/10!`, 'success');
+        this.output(`Cost: $${upgradeCost}`, 'system');
+        this.output('Higher quality attracts more customers and justifies better pricing.', 'system');
+    }
+
+    handleRunMarketing() {
+        if (gameState.businesses.length === 0) {
+            this.output("You don't own any businesses yet.", 'error');
+            return;
+        }
+
+        const business = gameState.businesses[0];
+        
+        // Marketing campaigns are now continuous via the setmarketing command
+        this.output(`${business.name} current marketing level: ${business.marketing}/10`, 'description');
+        this.output(`Daily marketing costs: $${business.marketing * 20}`, 'system');
+        this.output('', 'system');
+        this.output("Use 'set marketing to [level]' to adjust your marketing investment.", 'system');
+        this.output('Higher marketing levels bring more customers.', 'system');
+    }
+
+    showBusinessInfo() {
+        if (gameState.businesses.length === 0) {
+            this.output("You don't own any businesses yet.", 'error');
+            this.output("Type 'buy cafe' at the café to purchase your first business!", 'system');
+            return;
+        }
+
+        gameState.businesses.forEach(business => {
+            this.output('═══════════════════════════════════════════════════', 'system');
+            this.output(`${business.name.toUpperCase()} - BUSINESS REPORT`, 'location');
+            this.output('═══════════════════════════════════════════════════', 'system');
+            this.output('', 'system');
+            
+            // Performance summary
+            const performance = getBusinessPerformance(business);
+            const roi = business.daysOwned > 0 
+                ? ((business.totalRevenue / business.purchasePrice) * 100).toFixed(1)
+                : '0.0';
+            
+            this.output('PERFORMANCE:', 'description');
+            this.output(`  Rating: ${performance}`, 'system');
+            this.output(`  Days Owned: ${business.daysOwned}`, 'system');
+            this.output(`  Total Revenue: $${business.totalRevenue}`, 'system');
+            this.output(`  Last Daily Net: $${business.lastRevenue}`, business.lastRevenue >= 0 ? 'success' : 'error');
+            this.output(`  ROI: ${roi}%`, 'system');
+            this.output('', 'system');
+            
+            // Current parameters
+            this.output('CURRENT PARAMETERS:', 'description');
+            this.output(`  Price Level: ${Math.round(business.price * 100)}%`, 'system');
+            this.output(`  Quality: ${business.quality}/10`, 'system');
+            this.output(`  Marketing: ${business.marketing}/10`, 'system');
+            this.output(`  Staff: ${business.staff}`, 'system');
+            this.output('', 'system');
+            
+            // Financial breakdown
+            this.output('DAILY COSTS:', 'description');
+            this.output(`  Base Expenses: $${business.baseExpenses}`, 'system');
+            this.output(`  Staff Cost: $${business.staff * 50}`, 'system');
+            this.output(`  Marketing Cost: $${business.marketing * 20}`, 'system');
+            this.output(`  Quality Cost: $${business.quality * 15}`, 'system');
+            this.output(`  Total Daily Expenses: $${business.baseExpenses + (business.staff * 50) + (business.marketing * 20) + (business.quality * 15)}`, 'system');
+            this.output('', 'system');
+            
+            // Recommendations
+            const recommendations = getBusinessRecommendations(business);
+            if (recommendations.length > 0) {
+                this.output('RECOMMENDATIONS:', 'description');
+                recommendations.forEach(rec => {
+                    this.output(`  • ${rec}`, 'system');
+                });
+                this.output('', 'system');
+            }
+            
+            // Management commands
+            this.output('MANAGEMENT COMMANDS:', 'description');
+            this.output("  • 'set price to [50-200]%' - Adjust pricing", 'system');
+            this.output("  • 'upgrade quality' - Improve quality (costs money)", 'system');
+            this.output("  • 'set marketing to [0-10]' - Adjust marketing", 'system');
+            this.output("  • 'set staff to [1-10]' - Adjust staffing", 'system');
+        });
+    }
+
     showHelp() {
         this.output('═══════════════════════════════════════════════════', 'system');
         this.output('AVAILABLE COMMANDS', 'location');
@@ -793,6 +1070,11 @@ export class GameEngine {
         this.output('BUSINESS:', 'description');
         this.output('  • take loan - Get business loan at bank', 'system');
         this.output('  • buy cafe - Purchase the café ($50,000)', 'system');
+        this.output('  • business info - View detailed business stats', 'system');
+        this.output('  • set price to [%] - Adjust business pricing (50-200%)', 'system');
+        this.output('  • upgrade quality - Improve business quality', 'system');
+        this.output('  • set marketing to [0-10] - Adjust marketing level', 'system');
+        this.output('  • set staff to [1-10] - Adjust staff count', 'system');
         this.output('');
         this.output('INFO:', 'description');
         this.output('  • stats - View full character stats', 'system');
@@ -843,10 +1125,21 @@ export class GameEngine {
         this.output('');
         this.output('FINANCIAL:', 'description');
         this.output(`  Cash:        $${c.money}`, 'system');
-        this.output(
-            `  Businesses:  ${gameState.flags.ownsCafe ? 'Coffee Bean Café' : 'None'}`,
-            'system'
-        );
+        
+        // Show business info
+        if (gameState.businesses.length > 0) {
+            this.output(`  Businesses:  ${gameState.businesses.length}`, 'system');
+            gameState.businesses.forEach(business => {
+                const performance = getBusinessPerformance(business);
+                this.output(
+                    `    • ${business.name} (${performance}) - Last: $${business.lastRevenue}/day`,
+                    business.lastRevenue >= 0 ? 'success' : 'error'
+                );
+            });
+            this.output("  Type 'business info' for detailed stats", 'system');
+        } else {
+            this.output('  Businesses:  None', 'system');
+        }
         this.output('');
         
         // Display relationships
@@ -1110,13 +1403,45 @@ export class GameEngine {
             gameState.character.hour -= 24;
             gameState.character.day += 1;
 
-            if (gameState.flags.ownsCafe) {
-                const config = dataLoader.getConfig();
-                this.modifyMoney(config.prices.cafeRevenue);
+            // Process all businesses at end of day
+            if (gameState.businesses.length > 0) {
+                this.output('', 'system');
+                this.output('═══ END OF DAY BUSINESS REPORT ═══', 'event');
+                
+                let totalNetRevenue = 0;
+                gameState.businesses.forEach(business => {
+                    const results = processDailyBusiness(business);
+                    totalNetRevenue += results.netRevenue;
+                    
+                    this.output(`${business.name}:`, 'description');
+                    this.output(
+                        `  Revenue: $${results.revenue} | Expenses: $${results.expenses} | Net: $${results.netRevenue}`,
+                        results.netRevenue >= 0 ? 'success' : 'error'
+                    );
+                    
+                    // Show performance rating
+                    const performance = getBusinessPerformance(business);
+                    this.output(`  Performance: ${performance}`, 'system');
+                });
+                
+                // Apply total revenue to player's money
+                this.modifyMoney(totalNetRevenue);
+                
+                this.output('', 'system');
                 this.output(
-                    `Your café generated $${config.prices.cafeRevenue} in revenue today!`,
-                    'success'
+                    `Total Business Income: $${totalNetRevenue}`,
+                    totalNetRevenue >= 0 ? 'success' : 'error'
                 );
+                this.output('═══════════════════════════════════', 'event');
+            }
+            
+            // Legacy support: Check old flag for backwards compatibility with saved games
+            if (gameState.flags.ownsCafe && gameState.businesses.length === 0) {
+                // Migrate old save to new system
+                const config = dataLoader.getConfig();
+                const migratedBusiness = createBusiness('cafe', 'Coffee Bean Café', config.prices.cafePrice);
+                gameState.businesses.push(migratedBusiness);
+                this.output('Your café has been upgraded to the new management system!', 'success');
             }
         }
 
