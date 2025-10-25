@@ -1,0 +1,131 @@
+{
+  "barista": {
+    "id": "barista",
+    "name": "Barista",
+    "description": "Serve coffee and pastries at the local café",
+    "location": "cafe",
+    "requirements": {
+      "charisma": 20,
+      "intelligence": 10
+    },
+    "wage": 60,
+    "skillGains": {
+      "charisma": 0.5,
+      "businessSkill": 0.3
+    },
+    "hoursPerShift": 8
+  },
+  "personal_trainer": {
+    "id": "personal_trainer",
+    "name": "Personal Trainer",
+    "description": "Help gym members achieve their fitness goals",
+    "location": "gym",
+    "requirements": {
+      "strength": 50,
+      "charisma": 30
+    },
+    "wage": 80,
+    "skillGains": {
+      "strength": 0.8,
+      "charisma": 0.5
+    },
+    "hoursPerShift": 6
+  },
+  "bank_teller": {
+    "id": "bank_teller",
+    "name": "Bank Teller",
+    "description": "Process customer transactions and manage accounts",
+    "location": "bank",
+    "requirements": {
+      "intelligence": 40,
+      "charisma": 30
+    },
+    "wage": 90,
+    "skillGains": {
+      "intelligence": 0.6,
+      "businessSkill": 0.7
+    },
+    "hoursPerShift": 8
+  },
+  "bookstore_clerk": {
+    "id": "bookstore_clerk",
+    "name": "Bookstore Clerk",
+    "description": "Help customers find books and manage inventory",
+    "location": "bookstore",
+    "requirements": {
+      "intelligence": 30,
+      "charisma": 25
+    },
+    "wage": 70,
+    "skillGains": {
+      "intelligence": 0.7,
+      "charisma": 0.4
+    },
+    "hoursPerShift": 7
+  },
+  "restaurant_server": {
+    "id": "restaurant_server",
+    "name": "Restaurant Server",
+    "description": "Serve customers at an upscale restaurant",
+    "location": "restaurant",
+    "requirements": {
+      "charisma": 35,
+      "strength": 30
+    },
+    "wage": 85,
+    "skillGains": {
+      "charisma": 0.8,
+      "businessSkill": 0.4
+    },
+    "hoursPerShift": 8
+  },
+  "tech_support": {
+    "id": "tech_support",
+    "name": "Tech Support Specialist",
+    "description": "Provide technical support to customers at the electronics store",
+    "location": "tech_store",
+    "requirements": {
+      "intelligence": 50,
+      "charisma": 25
+    },
+    "wage": 100,
+    "skillGains": {
+      "intelligence": 0.9,
+      "businessSkill": 0.5
+    },
+    "hoursPerShift": 8
+  },
+  "park_maintenance": {
+    "id": "park_maintenance",
+    "name": "Park Maintenance Worker",
+    "description": "Maintain the park grounds and facilities",
+    "location": "park",
+    "requirements": {
+      "strength": 40
+    },
+    "wage": 75,
+    "skillGains": {
+      "strength": 0.7,
+      "health": 0.5
+    },
+    "hoursPerShift": 8
+  },
+  "business_consultant": {
+    "id": "business_consultant",
+    "name": "Business Consultant",
+    "description": "Advise companies on business strategy and operations",
+    "location": "office_building",
+    "requirements": {
+      "intelligence": 70,
+      "businessSkill": 60,
+      "charisma": 50
+    },
+    "wage": 200,
+    "skillGains": {
+      "intelligence": 1.0,
+      "businessSkill": 1.2,
+      "charisma": 0.8
+    },
+    "hoursPerShift": 10
+  }
+}
