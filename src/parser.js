@@ -48,6 +48,45 @@ export class NLPParser {
             locations: locations
         };
 
+        this.patterns = [
+            { regex: /^(go to|goto|enter|visit)\s+(the\s+)?(.*)/i, action: 'move', target: 3 },
+            { regex: /^go\s+(north|south|east|west)/i, action: 'move', direction: 1 },
+            {
+                regex: /^talk to\s+(the\s+)?(.*?)(\s+about\s+(.*))?$/i,
+                action: 'talk',
+                target: 2,
+                topic: 4
+            },
+            { regex: /^(check|view|show)\s+(my\s+)?(.*)/i, action: 'examine', target: 3 },
+            { regex: /^(look|look around)/i, action: 'look', target: 'room' },
+            { regex: /^(work|workout|exercise)/i, action: 'work', target: 'current' },
+            { regex: /^(sleep|rest|nap)/i, action: 'sleep', duration: 8 },
+            { regex: /^(eat|drink)\s*(.*)/i, action: 'eat', target: 2 },
+            {
+                regex: /^(take|get|request)\s+(a\s+)?loan(\s+for\s+)?(\d+)?/i,
+                action: 'loan',
+                amount: 4
+            },
+            { regex: /^apply for job/i, action: 'apply', target: 'job' },
+            { regex: /^(promote|promotion|advance)/i, action: 'promote' },
+            // Business management commands
+            { regex: /^(set|change)\s+price\s+(to\s+)?(\d+\.?\d*)(%)?/i, action: 'setprice', value: 3, isPercent: 4 },
+            { regex: /^(hire|add)\s+staff/i, action: 'hirestaff' },
+            { regex: /^(fire|remove)\s+staff/i, action: 'firestaff' },
+            { regex: /^(set|change)\s+staff\s+(to\s+)?(\d+)/i, action: 'setstaff', value: 3 },
+            { regex: /^(set|change|adjust)\s+marketing\s+(to\s+)?(\d+)/i, action: 'setmarketing', value: 3 },
+            { regex: /^(upgrade|improve)\s+quality/i, action: 'upgradequality' },
+            { regex: /^(run|start|boost)\s+marketing/i, action: 'runmarketing' },
+            { regex: /^(business|businesses)\s*(info|status|report)?/i, action: 'businessinfo' },
+            { regex: /^(buy|purchase|open)\s+(a\s+)?(.*)/i, action: 'buy', target: 3 },
+            { regex: /^(help|commands|\?)/i, action: 'help' },
+            { regex: /^(inventory|inv|items)/i, action: 'inventory' },
+            { regex: /^(jobs|careers|positions)/i, action: 'jobs' },
+            { regex: /^career(\s+path)?(\s+info)?/i, action: 'careerinfo' },
+            { regex: /^stats/i, action: 'stats' },
+            { regex: /^save/i, action: 'save' },
+            { regex: /^load/i, action: 'load' }
+        ];
         // Add NPCs if data is loaded
         try {
             if (dataLoader.isDataLoaded()) {
@@ -146,6 +185,12 @@ export class NLPParser {
                     command.target = entities.item;
                 } else {
                     command.target = '';
+                }
+                if (pattern.value && match[pattern.value]) {
+                    command.value = parseFloat(match[pattern.value]);
+                }
+                if (pattern.isPercent && match[pattern.isPercent]) {
+                    command.isPercent = true;
                 }
                 break;
 
