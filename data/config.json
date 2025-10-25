@@ -1,0 +1,38 @@
+{
+  "game": {
+    "title": "LIFE PARSER",
+    "subtitle": "A Text-Based Life Simulation Game",
+    "initialMoney": 500,
+    "randomEventChance": 0.05,
+    "minDayForEvents": 2
+  },
+  "initialCharacter": {
+    "name": "You",
+    "day": 1,
+    "hour": 8,
+    "minute": 0,
+    "money": 500,
+    "health": 100,
+    "energy": 100,
+    "hunger": 30,
+    "intelligence": 50,
+    "charisma": 50,
+    "strength": 40,
+    "businessSkill": 30
+  },
+  "initialInventory": ["phone", "wallet", "keys"],
+  "initialLocation": "home",
+  "prices": {
+    "gymSession": 20,
+    "homeMeal": 10,
+    "cafeMeal": 15,
+    "cafeWage": 60,
+    "cafePrice": 50000,
+    "cafeRevenue": 200
+  },
+  "loans": {
+    "min": 5000,
+    "max": 50000,
+    "interestRate": 0.08
+  }
+}
