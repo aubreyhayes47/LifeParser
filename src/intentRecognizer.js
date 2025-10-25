@@ -95,25 +95,25 @@ export class IntentRecognizer {
                 keywords: ['help', 'commands', 'info', '?'],
                 patterns: [],
                 entities: [],
-                priority: 3
+                priority: 10
             },
             inventory: {
                 keywords: ['inventory', 'inv', 'items', 'backpack', 'bag'],
                 patterns: [],
                 entities: [],
-                priority: 5
+                priority: 10
             },
             jobs: {
                 keywords: ['jobs', 'careers', 'positions', 'employment'],
                 patterns: [],
                 entities: [],
-                priority: 5
+                priority: 10
             },
             stats: {
                 keywords: ['stats', 'status', 'character', 'profile'],
                 patterns: [],
                 entities: [],
-                priority: 5
+                priority: 10
             },
             save: {
                 keywords: ['save'],
@@ -238,8 +238,16 @@ export class IntentRecognizer {
                     score += 0.3;
                 }
 
-                // Normalize score by total words and priority
-                const confidence = score / (tokens.length * 0.5 + 1);
+                // Special handling for single-token exact matches
+                let confidence;
+                if (tokens.length === 1 && intentData.keywords.includes(tokens[0])) {
+                    // Exact single-word match gets high confidence
+                    confidence = 0.95;
+                } else {
+                    // Normalize score by total words and priority
+                    confidence = score / (tokens.length * 0.5 + 1);
+                }
+                
                 scores[intentName] = {
                     confidence: Math.min(confidence * (intentData.priority / 10), 1.0),
                     matches: matches
