@@ -43,6 +43,9 @@ export class GameEngine {
      * @returns {string} Formatted skill name
      */
     formatSkillName(skillName) {
+        if (!skillName || typeof skillName !== 'string') {
+            return 'Unknown';
+        }
         return SKILL_DISPLAY_NAMES[skillName] || skillName.charAt(0).toUpperCase() + skillName.slice(1);
     }
 
@@ -802,9 +805,10 @@ export class GameEngine {
         }
 
         // Legacy support: direct skill requirements (for backward compatibility with careers.json)
-        // Check all character stats that are numeric
-        Object.keys(gameState.character).forEach(skill => {
-            if (typeof gameState.character[skill] === 'number' && requirements[skill] && !requirements.stats) {
+        // Only check properties that are skills (listed in SKILL_DISPLAY_NAMES)
+        const validSkills = Object.keys(SKILL_DISPLAY_NAMES);
+        validSkills.forEach(skill => {
+            if (requirements[skill] && !requirements.stats && typeof gameState.character[skill] === 'number') {
                 if (gameState.character[skill] < requirements[skill]) {
                     missing.push(
                         `${this.formatSkillName(skill)}: ${gameState.character[skill]}/${requirements[skill]}`
