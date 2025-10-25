@@ -10,7 +10,8 @@ class DataLoader {
             npcs: null,
             items: null,
             events: null,
-            config: null
+            config: null,
+            careers: null
         };
         this.isLoaded = false;
         this.loadingError = null;
@@ -27,7 +28,8 @@ class DataLoader {
                 npcs: '/data/npcs.json',
                 items: '/data/items.json',
                 events: '/data/events.json',
-                config: '/data/config.json'
+                config: '/data/config.json',
+                careers: '/data/careers.json'
             };
 
             // Load all files in parallel
@@ -90,6 +92,11 @@ class DataLoader {
             throw new Error('Invalid or missing config data');
         }
 
+        // Check careers
+        if (!this.data.careers || typeof this.data.careers !== 'object') {
+            throw new Error('Invalid or missing careers data');
+        }
+
         // Validate that locations have required fields
         Object.entries(this.data.locations).forEach(([key, location]) => {
             if (!location.name || !location.description || !Array.isArray(location.exits)) {
@@ -141,6 +148,15 @@ class DataLoader {
     getConfig() {
         this.ensureLoaded();
         return this.data.config;
+    }
+
+    /**
+     * Get careers data
+     * @returns {Object} Careers object
+     */
+    getCareers() {
+        this.ensureLoaded();
+        return this.data.careers;
     }
 
     /**

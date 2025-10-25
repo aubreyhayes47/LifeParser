@@ -8,8 +8,8 @@
   },
   "street": {
     "name": "Main Street",
-    "description": "The heart of downtown. Cars pass by occasionally. You can see the gym to the north, a small café to the east, the bank to the south, and your apartment building to the west.",
-    "exits": ["gym", "cafe", "bank", "home"],
+    "description": "The heart of downtown. Cars pass by occasionally. You can see the gym to the north, a small café to the east, the bank to the south, your apartment building to the west, and more shops down the road.",
+    "exits": ["gym", "cafe", "bank", "home", "downtown_plaza", "park"],
     "actions": ["look around"],
     "npcs": []
   },
@@ -17,8 +17,8 @@
     "name": "24/7 Fitness Gym",
     "description": "A well-equipped gym with free weights, machines, and cardio equipment. The smell of rubber and determination fills the air. Motivational posters line the walls.",
     "exits": ["street"],
-    "actions": ["workout", "talk to trainer"],
-    "npcs": ["trainer"]
+    "actions": ["workout", "talk to trainer", "apply for job"],
+    "npcs": ["trainer", "gym_manager"]
   },
   "cafe": {
     "name": "Coffee Bean Café",
@@ -31,7 +31,56 @@
     "name": "First National Bank",
     "description": "A modern bank with polished floors and professional atmosphere. Tellers work behind glass windows. You see a loan officer at a desk in the corner.",
     "exits": ["street"],
-    "actions": ["check balance", "take loan", "talk to loan officer"],
-    "npcs": ["loan officer"]
+    "actions": ["check balance", "take loan", "talk to loan officer", "apply for job"],
+    "npcs": ["loan_officer", "bank_manager"]
+  },
+  "downtown_plaza": {
+    "name": "Downtown Plaza",
+    "description": "A bustling plaza with shops, restaurants, and people going about their day. The central fountain provides a peaceful sound amidst the urban energy. You can see a bookstore, a restaurant, and a tech store.",
+    "exits": ["street", "bookstore", "restaurant", "tech_store", "office_building"],
+    "actions": ["look around", "sit by fountain"],
+    "npcs": ["street_vendor", "musician"]
+  },
+  "bookstore": {
+    "name": "Novel Ideas Bookstore",
+    "description": "A charming independent bookstore with shelves reaching to the ceiling. The scent of paper and coffee mingles pleasantly. Cozy reading nooks invite you to stay awhile.",
+    "exits": ["downtown_plaza"],
+    "actions": ["browse books", "talk to clerk", "apply for job", "read"],
+    "npcs": ["bookstore_owner", "bookstore_clerk"]
+  },
+  "restaurant": {
+    "name": "The Golden Fork Restaurant",
+    "description": "An upscale restaurant with elegant décor and ambient lighting. The aroma of gourmet cuisine fills the air. White-clothed tables are set with fine silverware.",
+    "exits": ["downtown_plaza"],
+    "actions": ["order meal", "talk to chef", "apply for job"],
+    "npcs": ["head_chef", "restaurant_manager", "server"]
+  },
+  "tech_store": {
+    "name": "TechHub Electronics",
+    "description": "A modern electronics store showcasing the latest gadgets and computers. Display units glow with demonstrations. Knowledgeable staff are ready to assist customers.",
+    "exits": ["downtown_plaza"],
+    "actions": ["browse electronics", "talk to specialist", "apply for job"],
+    "npcs": ["tech_specialist", "store_manager"]
+  },
+  "park": {
+    "name": "Central Park",
+    "description": "A peaceful green space in the heart of the city. Trees provide shade over walking paths. Families play on the grass, and joggers pass by regularly. A maintenance worker tends to the flower beds.",
+    "exits": ["street", "park_pavilion"],
+    "actions": ["exercise", "relax", "talk to workers", "apply for job"],
+    "npcs": ["park_ranger", "maintenance_worker"]
+  },
+  "park_pavilion": {
+    "name": "Park Pavilion",
+    "description": "A covered pavilion with benches and picnic tables. Community events are often held here. A bulletin board displays local announcements and opportunities.",
+    "exits": ["park"],
+    "actions": ["read bulletin board", "rest"],
+    "npcs": []
+  },
+  "office_building": {
+    "name": "Downtown Office Building",
+    "description": "A sleek glass office building housing various businesses. The lobby features modern art and polished marble floors. Professionals in business attire move purposefully through the space.",
+    "exits": ["downtown_plaza"],
+    "actions": ["talk to receptionist", "apply for job", "network"],
+    "npcs": ["receptionist", "business_consultant", "ceo"]
   }
 }
