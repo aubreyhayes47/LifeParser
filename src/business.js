@@ -55,7 +55,7 @@ export function createBusiness(type, name, purchasePrice) {
         
         // Calculated values
         baseRevenue: defaults.baseRevenue,
-        expenses: defaults.baseExpenses,
+        baseExpenses: defaults.baseExpenses,
         lastRevenue: 0,
         
         // History
@@ -141,11 +141,11 @@ export function calculateRevenue(business) {
     // Higher prices reduce volume but increase per-sale revenue
     const priceModifier = business.price * (2.2 - business.price);
     
-    // Quality modifier: Better quality attracts more customers (0.5 to 1.0)
-    const qualityModifier = 0.5 + (business.quality / 20);
+    // Quality modifier: Better quality attracts more customers (0.7 to 1.2)
+    const qualityModifier = 0.7 + (business.quality / 20);
     
-    // Marketing modifier: More marketing brings more customers (0.6 to 1.0)
-    const marketingModifier = 0.6 + (business.marketing / 25);
+    // Marketing modifier: More marketing brings more customers (0.8 to 1.2)
+    const marketingModifier = 0.8 + (business.marketing / 25);
     
     // Staff modifier: Service capacity and quality
     // Minimum of 1 staff required, optimal is 2+ for most businesses
@@ -153,11 +153,11 @@ export function calculateRevenue(business) {
     let staffModifier;
     if (business.staff < optimalStaff) {
         // Penalty for understaffing
-        staffModifier = 0.5 + (business.staff / optimalStaff) * 0.3;
+        staffModifier = 0.6 + (business.staff / optimalStaff) * 0.5;
     } else {
         // Diminishing returns for overstaffing
-        staffModifier = 0.8 + (business.staff * 0.15);
-        if (staffModifier > 1.3) staffModifier = 1.3; // Cap at 130%
+        staffModifier = 1.0 + (business.staff * 0.1);
+        if (staffModifier > 1.5) staffModifier = 1.5; // Cap at 150%
     }
     
     // Random daily variance (±15%)

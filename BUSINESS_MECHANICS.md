@@ -71,24 +71,24 @@ This creates a parabolic curve that:
 #### 3. Quality Modifier
 Customer satisfaction from service/product quality.
 
-**Formula:** `0.5 + (quality / 20)`
+**Formula:** `0.7 + (quality / 20)`
 
-**Range:** 0.5 to 1.0
-- Quality 0: 0.50× revenue
-- Quality 5: 0.75× revenue
-- Quality 10: 1.00× revenue
+**Range:** 0.7 to 1.2
+- Quality 0: 0.70× revenue
+- Quality 5: 0.95× revenue
+- Quality 10: 1.20× revenue
 
 Higher quality attracts more customers and justifies premium pricing.
 
 #### 4. Marketing Modifier
 Customer awareness and acquisition through marketing efforts.
 
-**Formula:** `0.6 + (marketing / 25)`
+**Formula:** `0.8 + (marketing / 25)`
 
-**Range:** 0.6 to 1.0
-- Marketing 0: 0.60× revenue
-- Marketing 5: 0.80× revenue
-- Marketing 10: 1.00× revenue
+**Range:** 0.8 to 1.2
+- Marketing 0: 0.80× revenue
+- Marketing 5: 1.00× revenue
+- Marketing 10: 1.20× revenue
 
 More marketing brings more customers to your business.
 
@@ -96,14 +96,14 @@ More marketing brings more customers to your business.
 Service capacity and quality from staffing levels.
 
 **Formula:**
-- If `staff < 2` (understaffed): `0.5 + (staff / 2) × 0.3`
-- If `staff >= 2`: `0.8 + (staff × 0.15)` (capped at 1.3)
+- If `staff < 2` (understaffed): `0.6 + (staff / 2) × 0.5`
+- If `staff >= 2`: `1.0 + (staff × 0.1)` (capped at 1.5)
 
 **Examples:**
-- 1 staff: 0.65× revenue (understaffed penalty)
-- 2 staff: 1.10× revenue (optimal baseline)
-- 3 staff: 1.25× revenue
-- 5+ staff: 1.30× revenue (diminishing returns cap)
+- 1 staff: 0.85× revenue (understaffed penalty)
+- 2 staff: 1.20× revenue (optimal baseline)
+- 3 staff: 1.30× revenue
+- 5+ staff: 1.50× revenue (diminishing returns cap)
 
 #### 6. Random Factor
 Daily variance simulating business fluctuations.
@@ -143,43 +143,55 @@ Total Expenses = Base Expenses + Staff Cost + Marketing Cost + Quality Cost
 
 ## Management Strategies
 
-### Balanced Strategy (Recommended for beginners)
+### Default Strategy (Recommended for beginners)
 - Price: 100% (1.0)
 - Quality: 5
 - Marketing: 5
-- Staff: 2-3
+- Staff: 2
 
-**Expected Daily Net:** ~$100-150
+**Expected Daily Net:** ~$50-75
+**Pros:** Low cost, simple management
+**Cons:** Lower profits
+
+### Balanced Strategy
+- Price: 100% (1.0)
+- Quality: 6
+- Marketing: 6
+- Staff: 3
+
+**Expected Daily Net:** ~$10-90
+**Pros:** Good balance of all factors
+**Cons:** Higher costs, variable profits
 
 ### High-Volume Strategy
 - Price: 80-90%
-- Quality: 3-4
-- Marketing: 7-8
-- Staff: 3-4
+- Quality: 6
+- Marketing: 8
+- Staff: 4
 
-**Expected Daily Net:** ~$120-180
+**Expected Daily Net:** ~$15-75
 **Pros:** High customer volume
 **Cons:** Lower margins, requires more staff
 
 ### Premium Strategy
-- Price: 110-130%
+- Price: 120-130%
 - Quality: 8-10
 - Marketing: 6-7
 - Staff: 3
 
-**Expected Daily Net:** ~$150-200
+**Expected Daily Net:** ~$70-140
 **Pros:** High margins, prestige
-**Cons:** High costs, smaller customer base
+**Cons:** High quality investment required
 
 ### Profit Maximization Strategy
-- Price: 110%
-- Quality: 7-8
-- Marketing: 6-7
-- Staff: 2-3
+- Price: 130%
+- Quality: 10
+- Marketing: 7
+- Staff: 3
 
-**Expected Daily Net:** ~$180-250
-**Pros:** Optimal balance of all factors
-**Cons:** Requires tuning and adjustment
+**Expected Daily Net:** ~$70-140
+**Pros:** Maximum profit potential
+**Cons:** High initial investment, requires tuning
 
 ## Player Commands
 
