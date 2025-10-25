@@ -21,7 +21,8 @@
   "license": "ISC",
   "devDependencies": {
     "eslint": "^8.57.0",
-    "prettier": "^3.2.5",
-    "http-server": "^14.1.1"
+    "eslint-config-prettier": "^10.1.8",
+    "http-server": "^14.1.1",
+    "prettier": "^3.2.5"
   }
 }

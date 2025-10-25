@@ -7,7 +7,7 @@ export const locations = {
     home: {
         name: 'Your Apartment',
         description:
-            'A small studio apartment. It\'s modest but clean. Your bed sits in the corner, and a small kitchenette lines one wall. Sunlight streams through a single window overlooking the street.',
+            "A small studio apartment. It's modest but clean. Your bed sits in the corner, and a small kitchenette lines one wall. Sunlight streams through a single window overlooking the street.",
         exits: ['street'],
         actions: ['sleep', 'eat', 'use laptop'],
         npcs: []
