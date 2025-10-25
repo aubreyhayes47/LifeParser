@@ -15,11 +15,35 @@ import { locations } from './locations.js';
 import { NLPParser } from './parser.js';
 import { dataLoader } from './dataLoader.js';
 
+// Constants for game mechanics
+const ENERGY_PER_HOUR = 3; // Energy cost per hour of work
+const HUNGER_PER_HOUR = 2; // Hunger increase per hour of work
+
+// Skill name mapping for display
+const SKILL_DISPLAY_NAMES = {
+    health: 'Health',
+    energy: 'Energy',
+    hunger: 'Hunger',
+    intelligence: 'Intelligence',
+    charisma: 'Charisma',
+    strength: 'Strength',
+    businessSkill: 'Business Skill'
+};
+
 export class GameEngine {
     constructor() {
         this.parser = new NLPParser();
         this.outputElement = document.getElementById('output-container');
         this.inputElement = document.getElementById('command-input');
+    }
+
+    /**
+     * Format skill name for display
+     * @param {string} skillName - Internal skill name
+     * @returns {string} Formatted skill name
+     */
+    formatSkillName(skillName) {
+        return SKILL_DISPLAY_NAMES[skillName] || skillName.charAt(0).toUpperCase() + skillName.slice(1);
     }
 
     init() {
@@ -300,7 +324,7 @@ export class GameEngine {
         }
 
         // Check if player has enough energy
-        const energyRequired = Math.floor(career.hoursPerShift * 3); // ~3 energy per hour
+        const energyRequired = Math.floor(career.hoursPerShift * ENERGY_PER_HOUR);
         if (gameState.character.energy < energyRequired) {
             this.output(
                 `You're too tired to work. You need at least ${energyRequired} energy for a ${career.hoursPerShift}-hour shift.`,
@@ -316,7 +340,7 @@ export class GameEngine {
         // Apply work effects
         this.modifyMoney(earnings);
         this.modifyEnergy(-energyRequired);
-        this.modifyHunger(Math.floor(career.hoursPerShift * 2)); // Hunger increases during shift
+        this.modifyHunger(Math.floor(career.hoursPerShift * HUNGER_PER_HOUR));
         this.advanceTime(career.hoursPerShift * 60);
 
         // Apply skill gains
@@ -327,7 +351,7 @@ export class GameEngine {
                     gameState.character[skill] += gain;
                     gameState.character[skill] = Math.min(100, gameState.character[skill]);
                     skillMessages.push(
-                        `${skill.charAt(0).toUpperCase() + skill.slice(1)} +${gain.toFixed(1)}`
+                        `${this.formatSkillName(skill)} +${gain.toFixed(1)}`
                     );
                 }
             });
@@ -633,7 +657,7 @@ export class GameEngine {
                         const currentValue = gameState.character[skill] || 0;
                         const met = currentValue >= minValue;
                         reqList.push(
-                            `${skill}: ${currentValue}/${minValue}${met ? ' ✓' : ''}`
+                            `${this.formatSkillName(skill)}: ${currentValue}/${minValue}${met ? ' ✓' : ''}`
                         );
                     });
                     this.output(`  Requirements: ${reqList.join(', ')}`, 'system');
@@ -641,7 +665,7 @@ export class GameEngine {
 
                 if (career.skillGains) {
                     const gains = Object.entries(career.skillGains)
-                        .map(([skill, gain]) => `${skill} +${gain}`)
+                        .map(([skill, gain]) => `${this.formatSkillName(skill)} +${gain}`)
                         .join(', ');
                     this.output(`  Skill Gains: ${gains}`, 'system');
                 }
@@ -771,27 +795,19 @@ export class GameEngine {
             Object.entries(requirements.stats).forEach(([stat, minValue]) => {
                 if (gameState.character[stat] < minValue) {
                     missing.push(
-                        `${stat.charAt(0).toUpperCase() + stat.slice(1)}: ${gameState.character[stat]}/${minValue}`
+                        `${this.formatSkillName(stat)}: ${gameState.character[stat]}/${minValue}`
                     );
                 }
             });
         }
 
         // Legacy support: direct skill requirements (for backward compatibility with careers.json)
-        const skillKeys = [
-            'health',
-            'energy',
-            'hunger',
-            'intelligence',
-            'charisma',
-            'strength',
-            'businessSkill'
-        ];
-        skillKeys.forEach(skill => {
-            if (requirements[skill] && !requirements.stats) {
+        // Check all character stats that are numeric
+        Object.keys(gameState.character).forEach(skill => {
+            if (typeof gameState.character[skill] === 'number' && requirements[skill] && !requirements.stats) {
                 if (gameState.character[skill] < requirements[skill]) {
                     missing.push(
-                        `${skill.charAt(0).toUpperCase() + skill.slice(1)}: ${gameState.character[skill]}/${requirements[skill]}`
+                        `${this.formatSkillName(skill)}: ${gameState.character[skill]}/${requirements[skill]}`
                     );
                 }
             }
