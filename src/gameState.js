@@ -6,31 +6,8 @@
 
 import { dataLoader } from './dataLoader.js';
 
-/**
- * Initialize game state from config data
- * @returns {Object} Initial game state
- */
-function createInitialState() {
-    const config = dataLoader.getConfig();
-    return {
-        character: { ...config.initialCharacter },
-        currentLocation: config.initialLocation,
-        businesses: [],
-        relationships: {},
-        inventory: [...config.initialInventory],
-        flags: {
-            hasJob: false,
-            metInvestor: false,
-            ownsCafe: false
-        },
-        commandHistory: [],
-        lastNPC: null,
-        pendingEvent: null
-    };
-}
-
 // Export gameState as a mutable object
-export let gameState = {
+export const gameState = {
     character: {
         name: 'You',
         day: 1,
@@ -63,12 +40,31 @@ export let gameState = {
  * Initialize game state after data is loaded
  */
 export function initializeGameState() {
-    gameState = createInitialState();
+    const config = dataLoader.getConfig();
+
+    // Update character with config values
+    Object.assign(gameState.character, config.initialCharacter);
+
+    // Update location
+    gameState.currentLocation = config.initialLocation;
+
+    // Reset other properties
+    gameState.businesses = [];
+    gameState.relationships = {};
+    gameState.inventory = [...config.initialInventory];
+    gameState.flags = {
+        hasJob: false,
+        metInvestor: false,
+        ownsCafe: false
+    };
+    gameState.commandHistory = [];
+    gameState.lastNPC = null;
+    gameState.pendingEvent = null;
 }
 
 /**
  * Reset game state to initial values
  */
 export function resetGameState() {
-    Object.assign(gameState, createInitialState());
+    initializeGameState();
 }
