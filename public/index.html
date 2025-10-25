@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Life Parser - Text-Based Life Sim</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <div id="game-container">
+            <div id="status-bar">
+                <div class="stat-group">
+                    <div class="stat">
+                        <span class="stat-label">Day:</span>
+                        <span class="stat-value" id="day">1</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Time:</span>
+                        <span class="stat-value" id="time">8:00 AM</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Money:</span>
+                        <span class="stat-value success" id="money">$500</span>
+                    </div>
+                </div>
+                <div class="stat-group">
+                    <div class="stat">
+                        <span class="stat-label">Health:</span>
+                        <span class="stat-value" id="health">100</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Energy:</span>
+                        <span class="stat-value" id="energy">100</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Hunger:</span>
+                        <span class="stat-value" id="hunger">30</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="output-container"></div>
+
+            <div id="input-container">
+                <span class="command-prompt">&gt;</span>
+                <input
+                    type="text"
+                    id="command-input"
+                    placeholder="Type a command (e.g., 'look around', 'go to cafe', 'check stats')"
+                    autocomplete="off"
+                />
+                <button id="submit-btn">ENTER</button>
+            </div>
+        </div>
+
+        <script type="module" src="/src/main.js"></script>
+    </body>
+</html>
