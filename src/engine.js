@@ -241,10 +241,27 @@ export class GameEngine {
         const npcKey = Object.keys(npcs).find(key => key.includes(target) || target.includes(key));
 
         if (npcKey && npcs[npcKey] && npcs[npcKey].dialogues) {
-            const dialogue = npcs[npcKey].dialogues.default;
+            const npc = npcs[npcKey];
+            
+            // Get relationship level and select appropriate dialogue
+            const relationshipLevel = this.getRelationshipLevel(npcKey);
+            const dialogue = npc.dialogues[relationshipLevel] || npc.dialogues.default;
+            
             dialogue.forEach(line => {
                 this.output(line, 'description');
             });
+
+            // Improve relationship slightly when talking
+            const relationshipChange = 2;
+            const oldRelationship = this.getRelationship(npcKey);
+            const newRelationship = this.modifyRelationship(npcKey, relationshipChange);
+            
+            // Show relationship change if crossing significant threshold
+            if (this.didCrossThreshold(oldRelationship, newRelationship, 30)) {
+                this.output(`Your relationship with ${npc.name} has improved significantly!`, 'success');
+            } else if (this.didCrossThreshold(oldRelationship, newRelationship, -30)) {
+                this.output(`Your relationship with ${npc.name} has deteriorated.`, 'error');
+            }
         } else {
             this.output(`You chat with the ${target}. They seem friendly.`, 'description');
         }
@@ -288,15 +305,24 @@ export class GameEngine {
 
         // Special case: Gym workout (not a job)
         if (loc === 'gym' && !gameState.flags.hasJob && !gameState.careerPath) {
-            if (gameState.character.money < config.prices.gymSession) {
+            // Apply relationship-based pricing
+            const relationship = this.getRelationship('trainer');
+            let gymPrice = config.prices.gymSession;
+            
+            if (relationship >= 30) {
+                // Good relationship: reduced price ($15)
+                gymPrice = 15;
+            }
+            
+            if (gameState.character.money < gymPrice) {
                 this.output(
-                    `You don't have enough money for a gym session ($${config.prices.gymSession}).`,
+                    `You don't have enough money for a gym session ($${gymPrice}).`,
                     'error'
                 );
                 return;
             }
 
-            this.modifyMoney(-config.prices.gymSession);
+            this.modifyMoney(-gymPrice);
             this.modifyEnergy(-30);
             this.modifyHunger(20);
             gameState.character.strength += 2;
@@ -306,7 +332,13 @@ export class GameEngine {
                 'You hit the weights hard. Your muscles burn, but you feel stronger!',
                 'success'
             );
-            this.output(`Strength +2, Energy -30, $${config.prices.gymSession} spent`, 'system');
+            
+            // Format workout results message
+            let resultMessage = `Strength +2, Energy -30, $${gymPrice} spent`;
+            if (relationship >= 30) {
+                resultMessage += ' (Discounted!)';
+            }
+            this.output(resultMessage, 'system');
             return;
         }
 
@@ -480,12 +512,35 @@ export class GameEngine {
             return;
         }
 
+        // Calculate interest rate based on relationship with loan officer
+        const relationship = this.getRelationship('loan_officer');
+        let interestRate = config.loans.interestRate;
+        
+        if (relationship >= 30) {
+            // Good relationship: reduced rate (5%)
+            interestRate = 0.05;
+        } else if (relationship <= -30) {
+            // Poor relationship: increased rate (10%)
+            interestRate = 0.10;
+        }
+
         this.modifyMoney(amount);
         this.output(`Loan approved! You receive $${amount}.`, 'success');
-        this.output(
-            `Remember: This comes with ${config.loans.interestRate * 100}% interest. Invest wisely!`,
-            'system'
-        );
+        
+        // Format interest rate message based on relationship
+        let rateMessage = `Interest rate: ${(interestRate * 100).toFixed(1)}%`;
+        let messageType = 'system';
+        
+        if (relationship >= 30) {
+            rateMessage += ' (Reduced due to good relationship!)';
+            messageType = 'success';
+        } else if (relationship <= -30) {
+            rateMessage += ' (Increased due to poor relationship)';
+            messageType = 'error';
+        }
+        
+        this.output(rateMessage, messageType);
+        this.output('Remember: Invest wisely!', 'system');
         this.advanceTime(30);
     }
 
@@ -560,20 +615,39 @@ export class GameEngine {
         const config = dataLoader.getConfig();
 
         if (target && target.includes('cafe')) {
-            if (gameState.character.money < config.prices.cafePrice) {
+            // Check relationship with café owner
+            const relationship = this.getRelationship('owner');
+            let cafePrice = config.prices.cafePrice;
+            
+            // Good relationship gives a discount
+            if (relationship >= 30) {
+                cafePrice = 45000;
+            } else if (relationship < 0) {
+                this.output("The café owner doesn't trust you enough to sell to you.", 'error');
+                this.output("Try building a better relationship with them first.", 'system');
+                return;
+            }
+            
+            if (gameState.character.money < cafePrice) {
                 this.output(
-                    `You need $${config.prices.cafePrice} to buy the café. Keep working and saving!`,
+                    `You need $${cafePrice} to buy the café. Keep working and saving!`,
                     'error'
                 );
                 return;
             }
 
-            this.modifyMoney(-config.prices.cafePrice);
+            this.modifyMoney(-cafePrice);
             gameState.flags.ownsCafe = true;
 
             this.output('═════════════════════════════════════', 'event');
             this.output('BUSINESS ACQUIRED!', 'success');
             this.output('You are now the proud owner of Coffee Bean Café!', 'description');
+            if (relationship >= 30) {
+                this.output(
+                    `Thanks to your good relationship, you got it for $${cafePrice} instead of $${config.prices.cafePrice}!`,
+                    'success'
+                );
+            }
             this.output(
                 `The café will generate passive income of $${config.prices.cafeRevenue}/day.`,
                 'description'
@@ -773,6 +847,28 @@ export class GameEngine {
             `  Businesses:  ${gameState.flags.ownsCafe ? 'Coffee Bean Café' : 'None'}`,
             'system'
         );
+        this.output('');
+        
+        // Display relationships
+        const npcs = dataLoader.getNPCs();
+        const relationshipEntries = Object.entries(gameState.relationships)
+            .filter(([_id, value]) => value !== 0)
+            .sort(([_a, valA], [_b, valB]) => valB - valA);
+        
+        if (relationshipEntries.length > 0) {
+            this.output('RELATIONSHIPS:', 'description');
+            relationshipEntries.forEach(([npcId, value]) => {
+                const npc = npcs[npcId];
+                const npcName = npc ? npc.name : npcId;
+                const level = value >= 30 ? '(Good)' : value <= -30 ? '(Poor)' : '(Neutral)';
+                const color = value >= 30 ? 'success' : value <= -30 ? 'error' : 'system';
+                this.output(`  ${npcName}: ${value}/100 ${level}`, color);
+            });
+        } else {
+            this.output('RELATIONSHIPS:', 'description');
+            this.output('  No significant relationships yet.', 'system');
+            this.output('  Talk to NPCs to build relationships!', 'system');
+        }
     }
 
     showInventory() {
@@ -1059,6 +1155,68 @@ export class GameEngine {
     modifyHealth(amount) {
         gameState.character.health += amount;
         gameState.character.health = Math.max(0, Math.min(100, gameState.character.health));
+    }
+
+    /**
+     * Modify relationship value with an NPC
+     * @param {string} npcId - NPC identifier
+     * @param {number} amount - Amount to change (positive or negative)
+     * @returns {number} New relationship value
+     */
+    modifyRelationship(npcId, amount) {
+        const npcs = dataLoader.getNPCs();
+        
+        // Initialize relationship if not exists
+        if (gameState.relationships[npcId] === undefined) {
+            const npc = npcs[npcId];
+            gameState.relationships[npcId] = npc ? (npc.initialRelationship || 0) : 0;
+        }
+
+        // Modify and clamp between -100 and 100
+        gameState.relationships[npcId] += amount;
+        gameState.relationships[npcId] = Math.max(-100, Math.min(100, gameState.relationships[npcId]));
+
+        return gameState.relationships[npcId];
+    }
+
+    /**
+     * Get relationship value with an NPC
+     * @param {string} npcId - NPC identifier
+     * @returns {number} Relationship value (-100 to 100)
+     */
+    getRelationship(npcId) {
+        const npcs = dataLoader.getNPCs();
+        
+        if (gameState.relationships[npcId] === undefined) {
+            const npc = npcs[npcId];
+            return npc ? (npc.initialRelationship || 0) : 0;
+        }
+        
+        return gameState.relationships[npcId];
+    }
+
+    /**
+     * Get relationship level as a string
+     * @param {string} npcId - NPC identifier
+     * @returns {string} Relationship level: 'high', 'default', or 'low'
+     */
+    getRelationshipLevel(npcId) {
+        const value = this.getRelationship(npcId);
+        if (value >= 30) return 'high';
+        if (value <= -30) return 'low';
+        return 'default';
+    }
+
+    /**
+     * Check if a value crossed a threshold
+     * @param {number} oldValue - Previous value
+     * @param {number} newValue - New value
+     * @param {number} threshold - Threshold to check
+     * @returns {boolean} True if crossed threshold
+     */
+    didCrossThreshold(oldValue, newValue, threshold) {
+        return Math.abs(newValue) >= Math.abs(threshold) && 
+               Math.abs(oldValue) < Math.abs(threshold);
     }
 
     output(text, type = 'description') {
