@@ -486,7 +486,8 @@ export class GameEngine {
      * @param {Object} details - Buy action details
      */
     performBuyAction(details) {
-        const { target, cost } = details;
+        const { target, cost, relationship } = details;
+        const config = dataLoader.getConfig();
 
         if (gameState.character.money < cost) {
             this.output(`You don't have enough money. You need $${cost}.`, 'error');
@@ -504,7 +505,26 @@ export class GameEngine {
             this.output('═════════════════════════════════════', 'event');
             this.output('BUSINESS ACQUIRED!', 'success');
             this.output('You are now the proud owner of Coffee Bean Café!', 'description');
+            if (relationship >= 30) {
+                this.output(
+                    `Thanks to your good relationship, you got it for $${cost} instead of $${config.prices.cafePrice}!`,
+                    'success'
+                );
+            }
+            this.output('', 'description');
             this.output('Your café is ready for business!', 'description');
+            this.output(`Starting parameters:`, 'system');
+            this.output(`  • Price Level: 100% (balanced)`, 'system');
+            this.output(`  • Quality: 5/10 (average)`, 'system');
+            this.output(`  • Marketing: 5/10 (average)`, 'system');
+            this.output(`  • Staff: ${newBusiness.staff} employees`, 'system');
+            this.output('', 'description');
+            this.output("Manage your business with commands like:", 'system');
+            this.output("  • 'business info' - View detailed business stats", 'system');
+            this.output("  • 'set price to 120%' - Adjust pricing", 'system');
+            this.output("  • 'upgrade quality' - Improve quality", 'system');
+            this.output("  • 'set marketing to 7' - Adjust marketing", 'system');
+            this.output("  • 'set staff to 3' - Adjust staffing", 'system');
             this.output('═════════════════════════════════════', 'event');
         }
     }
@@ -1193,39 +1213,28 @@ export class GameEngine {
                 return;
             }
 
-            this.modifyMoney(-cafePrice);
-            
-            // Create new business object
-            const newBusiness = createBusiness('cafe', 'Coffee Bean Café', cafePrice);
-            gameState.businesses.push(newBusiness);
-            
-            // Keep legacy flag for backward compatibility
-            gameState.flags.ownsCafe = true;
-
-            this.output('═════════════════════════════════════', 'event');
-            this.output('BUSINESS ACQUIRED!', 'success');
-            this.output('You are now the proud owner of Coffee Bean Café!', 'description');
-            if (relationship >= 30) {
-                this.output(
-                    `Thanks to your good relationship, you got it for $${cafePrice} instead of $${config.prices.cafePrice}!`,
-                    'success'
-                );
-            }
-            this.output('', 'description');
-            this.output('Your café is ready for business!', 'description');
-            this.output(`Starting parameters:`, 'system');
-            this.output(`  • Price Level: 100% (balanced)`, 'system');
-            this.output(`  • Quality: 5/10 (average)`, 'system');
-            this.output(`  • Marketing: 5/10 (average)`, 'system');
-            this.output(`  • Staff: ${newBusiness.staff} employees`, 'system');
-            this.output('', 'description');
-            this.output("Manage your business with commands like:", 'system');
-            this.output("  • 'business info' - View detailed business stats", 'system');
-            this.output("  • 'set price to 120%' - Adjust pricing", 'system');
-            this.output("  • 'upgrade quality' - Improve quality", 'system');
-            this.output("  • 'set marketing to 7' - Adjust marketing", 'system');
-            this.output("  • 'set staff to 3' - Adjust staffing", 'system');
-            this.output('═════════════════════════════════════', 'event');
+            // Ask for confirmation before major purchase
+            this.setDialogueState(
+                'confirmation',
+                {
+                    action: 'buy',
+                    details: {
+                        target: 'cafe',
+                        cost: cafePrice,
+                        relationship: relationship
+                    }
+                },
+                `═══════════════════════════════════════════════════\n` +
+                `PURCHASE CONFIRMATION\n` +
+                `═══════════════════════════════════════════════════\n` +
+                `Business: Coffee Bean Café\n` +
+                `Price: $${cafePrice}\n` +
+                `Your Money: $${gameState.character.money}\n` +
+                `Remaining: $${gameState.character.money - cafePrice}\n` +
+                `═══════════════════════════════════════════════════\n` +
+                `This is a major investment. Are you sure? (yes/no)`
+            );
+            return;
         } else {
             this.output("You can't buy that right now.", 'error');
         }
@@ -1575,6 +1584,7 @@ export class GameEngine {
         this.output('');
         this.output('INTERACTION:', 'description');
         this.output('  • talk to [person] - Speak with NPCs', 'system');
+        this.output('  • talk - Start conversation (will prompt for who)', 'system');
         this.output('  • work - Do activities at current location', 'system');
         this.output('  • apply for job - Get hired (check requirements first)', 'system');
         this.output('  • promote - Request promotion to next level', 'system');
@@ -1601,6 +1611,11 @@ export class GameEngine {
         this.output('  • inventory - View items', 'system');
         this.output('  • save - Save game to browser storage', 'system');
         this.output('  • load - Load saved game from browser storage', 'system');
+        this.output('', 'system');
+        this.output('DIALOGUE SYSTEM:', 'description');
+        this.output('  • When prompted for information, just type your response', 'system');
+        this.output('  • Type "cancel" at any time to exit a dialogue', 'system');
+        this.output('  • Answer yes/no questions with "yes" or "no"', 'system');
         this.output('', 'system');
         this.output('Note: Game auto-saves after every action.', 'system');
     }
