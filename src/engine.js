@@ -115,6 +115,12 @@ export class GameEngine {
         this.output(`> ${input}`, 'system');
         this.output('');
 
+        // Check for active dialogue context first
+        if (gameState.pendingEvent) {
+            this.handleDialogueResponse(input);
+            return;
+        }
+
         const command = this.parser.parse(input);
 
         switch (command.action) {
@@ -215,11 +221,408 @@ export class GameEngine {
         this.autoSave();
     }
 
+    // ==================== DIALOGUE STATE MACHINE ====================
+
+    /**
+     * Handle user input when in a dialogue state
+     * @param {string} input - User input
+     */
+    handleDialogueResponse(input) {
+        const trimmedInput = input.trim().toLowerCase();
+
+        // Allow cancellation from any dialogue state
+        if (trimmedInput === 'cancel' || trimmedInput === 'quit' || trimmedInput === 'exit') {
+            this.clearDialogueState();
+            this.output('Action cancelled.', 'system');
+            this.updateUI();
+            return;
+        }
+
+        const event = gameState.pendingEvent;
+
+        switch (event.type) {
+            case 'incomplete_command':
+                this.handleIncompleteCommand(input, event);
+                break;
+            case 'confirmation':
+                this.handleConfirmation(input, event);
+                break;
+            case 'clarification':
+                this.handleClarification(input, event);
+                break;
+            case 'yes_no':
+                this.handleYesNo(input, event);
+                break;
+            default:
+                this.output(`Unknown dialogue type: ${event.type}`, 'error');
+                this.clearDialogueState();
+        }
+
+        this.updateUI();
+        this.autoSave();
+    }
+
+    /**
+     * Handle incomplete command dialogue
+     * @param {string} input - User input providing missing information
+     * @param {Object} event - The pending event object
+     */
+    handleIncompleteCommand(input, event) {
+        const { action, missingEntity } = event.context;
+
+        // Parse the provided entity
+        const command = this.parser.parse(input);
+
+        // Reconstruct complete command with missing information filled in
+        const completeCommand = {
+            action: action,
+            [missingEntity]: command.target || input.trim()
+        };
+
+        // Copy any existing context
+        if (event.context.existingData) {
+            Object.assign(completeCommand, event.context.existingData);
+        }
+
+        this.clearDialogueState();
+
+        // Execute the completed command using the switch statement
+        this.executeCommand(completeCommand);
+    }
+
+    /**
+     * Handle confirmation dialogue
+     * @param {string} input - User's yes/no response
+     * @param {Object} event - The pending event object
+     */
+    handleConfirmation(input, event) {
+        const response = input.trim().toLowerCase();
+
+        if (response === 'yes' || response === 'y') {
+            const { action, details } = event.context;
+            this.clearDialogueState();
+            this.executeConfirmedAction(action, details);
+        } else if (response === 'no' || response === 'n') {
+            this.clearDialogueState();
+            this.output('Action cancelled.', 'system');
+        } else {
+            this.output('Please answer yes or no.', 'error');
+        }
+    }
+
+    /**
+     * Handle clarification dialogue (selecting from multiple options)
+     * @param {string} input - User's selection
+     * @param {Object} event - The pending event object
+     */
+    handleClarification(input, event) {
+        const { action, options } = event.context;
+        const response = input.trim().toLowerCase();
+
+        // Try to match number selection
+        const numMatch = response.match(/^(\d+)$/);
+        if (numMatch) {
+            const index = parseInt(numMatch[1]) - 1;
+            if (index >= 0 && index < options.length) {
+                const selected = options[index];
+                this.clearDialogueState();
+                this.executeWithClarification(action, selected, event.context);
+                return;
+            }
+        }
+
+        // Try to match direct text selection
+        const selected = options.find(
+            opt => opt.toLowerCase() === response || response.includes(opt.toLowerCase())
+        );
+
+        if (selected) {
+            this.clearDialogueState();
+            this.executeWithClarification(action, selected, event.context);
+        } else {
+            this.output('Invalid selection. Please choose from the options above.', 'error');
+        }
+    }
+
+    /**
+     * Handle yes/no dialogue
+     * @param {string} input - User's yes/no response
+     * @param {Object} event - The pending event object
+     */
+    handleYesNo(input, event) {
+        const response = input.trim().toLowerCase();
+
+        if (response === 'yes' || response === 'y') {
+            this.clearDialogueState();
+            if (event.context.onConfirm) {
+                this.executeYesNoCallback(event.context.onConfirm, event.context);
+            }
+        } else if (response === 'no' || response === 'n') {
+            this.clearDialogueState();
+            if (event.context.onCancel) {
+                this.executeYesNoCallback(event.context.onCancel, event.context);
+            } else {
+                this.output('Action cancelled.', 'system');
+            }
+        } else {
+            this.output('Please answer yes or no.', 'error');
+        }
+    }
+
+    /**
+     * Clear the current dialogue state
+     */
+    clearDialogueState() {
+        gameState.pendingEvent = null;
+    }
+
+    /**
+     * Set a new dialogue state
+     * @param {string} type - Dialogue type (incomplete_command, confirmation, clarification, yes_no)
+     * @param {Object} context - Context data for the dialogue
+     * @param {string} prompt - Message to display to user
+     */
+    setDialogueState(type, context, prompt) {
+        gameState.pendingEvent = {
+            type: type,
+            context: context,
+            prompt: prompt
+        };
+
+        if (prompt) {
+            this.output(prompt, 'system');
+        }
+    }
+
+    /**
+     * Execute a command object (used for completing incomplete commands)
+     * @param {Object} command - Command object with action and entities
+     */
+    executeCommand(command) {
+        switch (command.action) {
+            case 'move':
+                this.handleMovement(command);
+                break;
+            case 'talk':
+                this.handleConversation(command);
+                break;
+            case 'buy':
+                this.handleBuy(command);
+                break;
+            case 'loan':
+                this.handleLoan(command);
+                break;
+            case 'eat':
+                this.handleEat(command);
+                break;
+            default:
+                this.output(`Cannot complete command: ${command.action}`, 'error');
+        }
+    }
+
+    /**
+     * Execute a confirmed action
+     * @param {string} action - The action to execute
+     * @param {Object} details - Action-specific details
+     */
+    executeConfirmedAction(action, details) {
+        switch (action) {
+            case 'buy':
+                // Execute the buy without re-checking (already confirmed)
+                this.performBuyAction(details);
+                break;
+            case 'loan':
+                this.performLoanAction(details);
+                break;
+            case 'quit_job':
+                this.performQuitJob();
+                break;
+            default:
+                this.output(`Unknown confirmed action: ${action}`, 'error');
+        }
+    }
+
+    /**
+     * Execute command with clarified entity
+     * @param {string} action - The action to execute
+     * @param {string} selected - The clarified entity
+     * @param {Object} context - Additional context from clarification
+     */
+    executeWithClarification(action, selected, context) {
+        const command = {
+            action: action,
+            target: selected
+        };
+
+        // Add any additional context
+        if (context.existingData) {
+            Object.assign(command, context.existingData);
+        }
+
+        this.executeCommand(command);
+    }
+
+    /**
+     * Execute yes/no callback
+     * @param {string} callbackType - Type of callback to execute
+     * @param {Object} context - Context containing callback data
+     */
+    executeYesNoCallback(callbackType, context) {
+        switch (callbackType) {
+            case 'apply_for_job':
+                // Already checked requirements, just hire
+                this.performApplyForJob(context.jobData);
+                break;
+            case 'promote':
+                this.performPromotion();
+                break;
+            default:
+                this.output(`Callback executed: ${callbackType}`, 'system');
+        }
+    }
+
+    /**
+     * Perform buy action (after confirmation)
+     * @param {Object} details - Buy action details
+     */
+    performBuyAction(details) {
+        const { target, cost, relationship } = details;
+        const config = dataLoader.getConfig();
+
+        if (gameState.character.money < cost) {
+            this.output(`You don't have enough money. You need $${cost}.`, 'error');
+            return;
+        }
+
+        // Execute the actual buy logic based on target
+        if (target === 'cafe') {
+            this.modifyMoney(-cost);
+
+            const newBusiness = createBusiness('cafe', 'Coffee Bean Café', cost);
+            gameState.businesses.push(newBusiness);
+            gameState.flags.ownsCafe = true;
+
+            this.output('═════════════════════════════════════', 'event');
+            this.output('BUSINESS ACQUIRED!', 'success');
+            this.output('You are now the proud owner of Coffee Bean Café!', 'description');
+            if (relationship >= 30) {
+                this.output(
+                    `Thanks to your good relationship, you got it for $${cost} instead of $${config.prices.cafePrice}!`,
+                    'success'
+                );
+            }
+            this.output('', 'description');
+            this.output('Your café is ready for business!', 'description');
+            this.output(`Starting parameters:`, 'system');
+            this.output(`  • Price Level: 100% (balanced)`, 'system');
+            this.output(`  • Quality: 5/10 (average)`, 'system');
+            this.output(`  • Marketing: 5/10 (average)`, 'system');
+            this.output(`  • Staff: ${newBusiness.staff} employees`, 'system');
+            this.output('', 'description');
+            this.output("Manage your business with commands like:", 'system');
+            this.output("  • 'business info' - View detailed business stats", 'system');
+            this.output("  • 'set price to 120%' - Adjust pricing", 'system');
+            this.output("  • 'upgrade quality' - Improve quality", 'system');
+            this.output("  • 'set marketing to 7' - Adjust marketing", 'system');
+            this.output("  • 'set staff to 3' - Adjust staffing", 'system');
+            this.output('═════════════════════════════════════', 'event');
+        }
+    }
+
+    /**
+     * Perform loan action (after confirmation)
+     * @param {Object} details - Loan details
+     */
+    performLoanAction(details) {
+        const { amount, interestRate } = details;
+        this.modifyMoney(amount);
+        this.output(`Loan approved! You receive $${amount}.`, 'success');
+        this.output(`Interest rate: ${(interestRate * 100).toFixed(1)}%`, 'system');
+        this.output('Remember: Invest wisely!', 'system');
+        this.advanceTime(30);
+    }
+
+    /**
+     * Perform apply for job (after confirmation)
+     * @param {Object} jobData - Job data
+     */
+    performApplyForJob(jobData) {
+        const { pathId, path, entryLevel } = jobData;
+
+        gameState.flags.hasJob = true;
+        gameState.careerPath = {
+            pathId: pathId,
+            level: entryLevel.level,
+            title: entryLevel.title,
+            experience: 0
+        };
+
+        this.output('The hiring manager smiles and shakes your hand.', 'success');
+        this.output(
+            `"Welcome aboard as our new ${entryLevel.title}! You can work shifts by typing 'work'. We pay $${entryLevel.wage} per ${entryLevel.hoursPerShift}-hour shift."`,
+            'description'
+        );
+        this.output(`You've started on the ${path.name} career track!`, 'system');
+        this.advanceTime(15);
+    }
+
+    /**
+     * Perform promotion (after confirmation)
+     */
+    performPromotion() {
+        const oldTitle = gameState.careerPath.title;
+        const promoted = this.promotePlayer();
+
+        if (promoted) {
+            const newLevel = this.getCurrentCareerLevel();
+
+            this.output('═════════════════════════════════════', 'event');
+            this.output('PROMOTION!', 'success');
+            this.output(
+                `Congratulations! You've been promoted from ${oldTitle} to ${newLevel.title}!`,
+                'description'
+            );
+            this.output(
+                `New wage: $${newLevel.wage} per ${newLevel.hoursPerShift}-hour shift`,
+                'system'
+            );
+            this.output('═════════════════════════════════════', 'event');
+            this.advanceTime(30);
+        } else {
+            this.output("Promotion failed. This shouldn't happen - please try again.", 'error');
+        }
+    }
+
+    /**
+     * Perform quit job action
+     */
+    performQuitJob() {
+        const oldTitle = gameState.careerPath ? gameState.careerPath.title : 'your job';
+        gameState.flags.hasJob = false;
+        gameState.careerPath = null;
+        this.output(`You have quit your position as ${oldTitle}.`, 'system');
+        this.output('You are now unemployed. Type "jobs" to see available careers.', 'system');
+    }
+
+    // ==================== END DIALOGUE STATE MACHINE ====================
+
     handleMovement(command) {
         let targetLocation = null;
 
         if (command.target) {
             targetLocation = this.parser.findClosestLocation(command.target);
+        } else {
+            // No target specified - prompt for it
+            const currentLoc = locations[gameState.currentLocation];
+            this.setDialogueState(
+                'incomplete_command',
+                {
+                    action: 'move',
+                    missingEntity: 'target'
+                },
+                `Where would you like to go?\nAvailable exits: ${currentLoc.exits.join(', ')}`
+            );
+            return;
         }
 
         const currentLoc = locations[gameState.currentLocation];
@@ -286,9 +689,39 @@ export class GameEngine {
     handleConversation(command) {
         const loc = locations[gameState.currentLocation];
         const target = command.target;
+        const npcs = dataLoader.getNPCs();
 
         if (!target) {
-            this.output('Talk to whom?', 'error');
+            // No target specified - check if there are NPCs here
+            const availableNPCs = loc.npcs.filter(npcId => {
+                const npc = npcs[npcId];
+                return npc && isNPCAvailable(npc, gameState.character.day, gameState.character.hour, gameState.character.minute);
+            });
+
+            if (availableNPCs.length === 0) {
+                this.output("There's no one here to talk to.", 'error');
+                return;
+            }
+
+            if (availableNPCs.length === 1) {
+                // Only one NPC, talk to them automatically
+                command.target = availableNPCs[0];
+                this.handleConversation(command);
+                return;
+            }
+
+            // Multiple NPCs - ask for clarification
+            const npcNames = availableNPCs.map(id => npcs[id].name);
+            const optionsList = npcNames.map((name, idx) => `${idx + 1}) ${name}`).join('\n');
+            this.setDialogueState(
+                'clarification',
+                {
+                    action: 'talk',
+                    options: availableNPCs,
+                    originalInput: 'talk'
+                },
+                `Multiple people are here. Who would you like to talk to?\n${optionsList}`
+            );
             return;
         }
 
@@ -300,7 +733,6 @@ export class GameEngine {
         gameState.lastNPC = target;
 
         // Get NPC dialogue from data
-        const npcs = dataLoader.getNPCs();
         const npcKey = Object.keys(npcs).find(key => key.includes(target) || target.includes(key));
 
         if (npcKey && npcs[npcKey] && npcs[npcKey].dialogues) {
@@ -781,39 +1213,28 @@ export class GameEngine {
                 return;
             }
 
-            this.modifyMoney(-cafePrice);
-            
-            // Create new business object
-            const newBusiness = createBusiness('cafe', 'Coffee Bean Café', cafePrice);
-            gameState.businesses.push(newBusiness);
-            
-            // Keep legacy flag for backward compatibility
-            gameState.flags.ownsCafe = true;
-
-            this.output('═════════════════════════════════════', 'event');
-            this.output('BUSINESS ACQUIRED!', 'success');
-            this.output('You are now the proud owner of Coffee Bean Café!', 'description');
-            if (relationship >= 30) {
-                this.output(
-                    `Thanks to your good relationship, you got it for $${cafePrice} instead of $${config.prices.cafePrice}!`,
-                    'success'
-                );
-            }
-            this.output('', 'description');
-            this.output('Your café is ready for business!', 'description');
-            this.output(`Starting parameters:`, 'system');
-            this.output(`  • Price Level: 100% (balanced)`, 'system');
-            this.output(`  • Quality: 5/10 (average)`, 'system');
-            this.output(`  • Marketing: 5/10 (average)`, 'system');
-            this.output(`  • Staff: ${newBusiness.staff} employees`, 'system');
-            this.output('', 'description');
-            this.output("Manage your business with commands like:", 'system');
-            this.output("  • 'business info' - View detailed business stats", 'system');
-            this.output("  • 'set price to 120%' - Adjust pricing", 'system');
-            this.output("  • 'upgrade quality' - Improve quality", 'system');
-            this.output("  • 'set marketing to 7' - Adjust marketing", 'system');
-            this.output("  • 'set staff to 3' - Adjust staffing", 'system');
-            this.output('═════════════════════════════════════', 'event');
+            // Ask for confirmation before major purchase
+            this.setDialogueState(
+                'confirmation',
+                {
+                    action: 'buy',
+                    details: {
+                        target: 'cafe',
+                        cost: cafePrice,
+                        relationship: relationship
+                    }
+                },
+                `═══════════════════════════════════════════════════\n` +
+                `PURCHASE CONFIRMATION\n` +
+                `═══════════════════════════════════════════════════\n` +
+                `Business: Coffee Bean Café\n` +
+                `Price: $${cafePrice}\n` +
+                `Your Money: $${gameState.character.money}\n` +
+                `Remaining: $${gameState.character.money - cafePrice}\n` +
+                `═══════════════════════════════════════════════════\n` +
+                `This is a major investment. Are you sure? (yes/no)`
+            );
+            return;
         } else {
             this.output("You can't buy that right now.", 'error');
         }
@@ -1163,6 +1584,7 @@ export class GameEngine {
         this.output('');
         this.output('INTERACTION:', 'description');
         this.output('  • talk to [person] - Speak with NPCs', 'system');
+        this.output('  • talk - Start conversation (will prompt for who)', 'system');
         this.output('  • work - Do activities at current location', 'system');
         this.output('  • apply for job - Get hired (check requirements first)', 'system');
         this.output('  • promote - Request promotion to next level', 'system');
@@ -1189,6 +1611,11 @@ export class GameEngine {
         this.output('  • inventory - View items', 'system');
         this.output('  • save - Save game to browser storage', 'system');
         this.output('  • load - Load saved game from browser storage', 'system');
+        this.output('', 'system');
+        this.output('DIALOGUE SYSTEM:', 'description');
+        this.output('  • When prompted for information, just type your response', 'system');
+        this.output('  • Type "cancel" at any time to exit a dialogue', 'system');
+        this.output('  • Answer yes/no questions with "yes" or "no"', 'system');
         this.output('', 'system');
         this.output('Note: Game auto-saves after every action.', 'system');
     }
